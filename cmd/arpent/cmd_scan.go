@@ -84,6 +84,9 @@ func cmdScan(e *env, args []string) int {
 		return e.fail(err)
 	}
 	printObservations(e, e.stdout, obs, res.Finished.Sub(res.Started))
+	if findings, err := s.Findings(id); err == nil {
+		printFindings(e, e.stdout, findings)
+	}
 	fmt.Fprintln(e.stdout, e.T("scan.saved", "id", fmt.Sprint(id), "site", s.Slug, "dir", s.Dir))
 	return 0
 }

@@ -40,6 +40,17 @@ func baseFuncs(tr *i18n.Translator) template.FuncMap {
 			}
 			return tr.T(key, ss...)
 		},
+		// ft traduit un texte de règle : ft "telnet" "title" params.
+		"ft": func(rule, part string, params map[string]string) string {
+			if tr == nil {
+				return rule
+			}
+			pairs := make([]string, 0, 2*len(params))
+			for k, v := range params {
+				pairs = append(pairs, k, v)
+			}
+			return tr.T("rule."+rule+"."+part, pairs...)
+		},
 		"date": func(t time.Time) string {
 			if t.IsZero() {
 				return "—"

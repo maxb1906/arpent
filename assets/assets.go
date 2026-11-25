@@ -19,3 +19,8 @@ var OUI []byte
 //
 //go:embed web
 var Web embed.FS
+
+// Rules contient les règles d'audit (points d'attention).
+//
+//go:embed rules.yaml
+var Rules []byte

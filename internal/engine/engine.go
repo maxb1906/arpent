@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"github.com/maxb1906/arpent/internal/audit"
+	"github.com/maxb1906/arpent/internal/rules"
 	"github.com/maxb1906/arpent/internal/store"
 )
 
@@ -18,8 +19,8 @@ const PhaseSave = "save"
 // PostProcessor analyse un audit enregistré (règles, diff…).
 type PostProcessor func(s *store.Site, auditID int64) error
 
-// postProcessors est complété par les étapes suivantes (règles, diff).
-var postProcessors []PostProcessor
+// postProcessors : analyses exécutées dans l'ordre après chaque audit.
+var postProcessors = []PostProcessor{rules.Apply}
 
 // Register ajoute une analyse exécutée après chaque audit enregistré.
 func Register(p PostProcessor) { postProcessors = append(postProcessors, p) }

@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étape 6 (interface web locale) terminée** — prochaine étape : 7 (points d'attention).
+> Statut : **étape 7 (points d'attention) terminée** — prochaine étape : 8 (diff).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -220,7 +220,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 - [x] **Étape 4 — Sondes** : bannières génériques, HTTP, TLS, SSH.
 - [x] **Étape 5 — Stockage** : schéma SQLite, sites, audits, sauvegarde des résultats.
 - [x] **Étape 6 — Interface web locale** : lancement du serveur + navigateur, liste des sites, lancement d'un audit avec progression, tableau d'inventaire, fiche appareil.
-- [ ] **Étape 7 — Points d'attention** : moteur de règles + règles de départ (§ 5.4).
+- [x] **Étape 7 — Points d'attention** : moteur de règles + règles de départ (§ 5.4).
 - [ ] **Étape 8 — Diff** : comparaison avec l'audit précédent, liste « connus / validés », annotations.
 - [ ] **Étape 9 — Rapport** : HTML autonome, mise en page d'impression PDF, exports CSV/JSON.
 - [ ] **Étape 10 — Découverte enrichie** : NetBIOS, mDNS, SSDP, SMB, SNMP, devinette du type d'appareil.
@@ -330,3 +330,6 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Nouveau paquet `internal/engine` : audit enregistré de bout en bout, avec des « post-traitements » enregistrables (règles à l'étape 7, diff à l'étape 8) — la CLI et l'UI partagent ce chemin. Bug corrigé grâce à `-race` en CI : la progression est appelée depuis plusieurs goroutines ; `make test` utilise désormais `-race`.
 - **2026-11-25** — Piège noté : `go:embed` ignore les fichiers commençant par `_` ou `.` ; les modèles partiels sont préfixés `part_`.
 - **2026-11-25** — Pas de navigateur sur la devbox (installation de Chromium refusée par le mode automatique) : le rendu est vérifié par des tests HTTP de bout en bout (création de site → audit de 127.0.0.1 → inventaire → fiche, fr et en, aucune clé de traduction brute), pas encore visuellement.
+- **2026-11-25** — Étape 7 terminée. `internal/rules` + `assets/rules.yaml` (lu avec `gopkg.in/yaml.v3` v3.0.1) : 16 règles évaluées service par service (Telnet, FTP, SMBv1, RDP, VNC, API Docker, admin HTTP sans TLS, certificat expiré / expirant sous 30 j / auto-signé, TLS 1.0-1.1, SNMP `public`, bases de données, UPnP/SSDP, SSH-1, logiciels anciens d'après le produit, l'en-tête `Server` et `X-Powered-By`). Conditions déclaratives (ports, services, critères TLS/HTTP/SSH/SMB/SNMP, seuils de version) : on enrichit le fichier sans toucher au moteur. « Admin HTTP » = page en clair avec realm d'authentification ou mots-clés de connexion dans le titre/le début de la page (l'extrait de 4 Kio est désormais conservé en base).
+- **2026-11-25** — Textes des règles : titre, explication pour le client et recommandation, en fr et en (`rule.<id>.title|explain|fix`), avec variables (`{port}`, `{date}`, `{product}`…). Seuls l'identifiant de règle et les paramètres sont stockés (table `finding`), le texte est traduit à l'affichage. Un test vérifie que chaque règle a ses 3 textes dans chaque langue.
+- **2026-11-25** — Affichage : section « Points d'attention » de l'audit (compteurs par niveau, détail dépliable), colonne triable dans l'inventaire, section sur la fiche appareil ; `arpent show` et `arpent scan --site` listent les points. La règle SMBv1 attend la sonde SMB de l'étape 10.

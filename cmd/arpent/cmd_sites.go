@@ -113,6 +113,11 @@ func cmdShow(e *env, args []string) int {
 	}
 	fmt.Fprintln(e.stdout, e.T("show.header", "id", strconv.FormatInt(a.ID, 10), "date", a.Started.Local().Format("2006-01-02 15:04"), "profile", e.T("profile."+a.Profile)))
 	printObservations(e, e.stdout, obs, a.Finished.Sub(a.Started))
+	findings, err := s.Findings(*id)
+	if err != nil {
+		return e.fail(err)
+	}
+	printFindings(e, e.stdout, findings)
 	return 0
 }
 
@@ -166,4 +171,25 @@ func printObservations(e *env, w io.Writer, obs []store.Observation, took time.D
 	}
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, e.T("scan.summary", "hosts", fmt.Sprint(len(obs)), "open", fmt.Sprint(open), "seconds", fmt.Sprintf("%.1f", took.Seconds())))
+}
+
+// printFindings affiche les points d'attention, du plus grave au moins grave.
+func printFindings(e *env, w io.Writer, fs []store.Finding) {
+	c := store.FindingCounts(fs)
+	fmt.Fprintln(w, e.T("scan.findings", "critical", fmt.Sprint(c["critical"]), "warning", fmt.Sprint(c["warning"]), "info", fmt.Sprint(c["info"])))
+	for _, f := range fs {
+		where := f.IP
+		if f.Port != 0 {
+			where += fmt.Sprintf(" %d/%s", f.Port, f.Proto)
+		}
+		fmt.Fprintf(w, "  [%s] %s — %s\n", e.T("level."+f.Level), ruleText(e, f, "title"), where)
+	}
+}
+
+func ruleText(e *env, f store.Finding, part string) string {
+	pairs := make([]string, 0, 2*len(f.Params))
+	for k, v := range f.Params {
+		pairs = append(pairs, k, v)
+	}
+	return e.T("rule."+f.Rule+"."+part, pairs...)
 }

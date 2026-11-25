@@ -14,6 +14,11 @@
 </dl>
 
 <section class="card">
+  <h2>{{t "web.findings"}}</h2>
+  {{template "findings" (dict "Findings" .Findings "Slug" .Site.Slug "Link" false)}}
+</section>
+
+<section class="card">
   <h2>{{t "web.services"}} <span class="muted small">— {{t "web.audit_of" "date" (datetime .Audit.Started)}}</span></h2>
   {{if not .Obs.Services}}<p class="muted">{{t "scan.no_port"}}</p>{{end}}
   {{range .Obs.Services}}

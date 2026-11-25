@@ -32,8 +32,8 @@ type HTTPInfo struct {
 	// interfaces connues.
 	FaviconHash int32 `json:"favicon_hash,omitempty"`
 	HasFavicon  bool  `json:"has_favicon,omitempty"`
-	// BodySample garde le début de la page pour les signatures (non exporté en JSON).
-	BodySample string `json:"-"`
+	// BodySample garde le début de la page (4 Kio) pour les règles et signatures.
+	BodySample string `json:"body_sample,omitempty"`
 }
 
 // UserAgent identifie honnêtement l'outil auprès des serveurs audités.

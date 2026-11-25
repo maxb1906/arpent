@@ -1,0 +1,93 @@
+# Règles d'audit d'Arpent (§ 5.4). Chaque règle s'applique à un service
+# ouvert ; toutes les conditions indiquées doivent être vraies.
+# Les textes (titre, explication pour le client, recommandation) sont dans
+# assets/i18n/<langue>.json sous rule.<id>.title / .explain / .fix.
+#
+# Conditions disponibles :
+#   proto: tcp|udp            ports: [..]            services: [..]
+#   http_plain_admin: true    (interface d'administration HTTP sans TLS)
+#   tls_expired: true         tls_expires_within_days: N
+#   tls_self_signed: true     tls_old_version: true  (TLS 1.0/1.1)
+#   smb_v1: true              snmp_public: true      ssdp: true
+#   ssh_protocol_v1: true
+#   outdated: [{product: Nom, below: "1.2.3"}]   (comparaison numérique)
+# Niveaux : info, warning (Attention), critical (Critique).
+
+- id: telnet
+  level: critical
+  match: { proto: tcp, ports: [23, 2323] }
+- id: telnet
+  level: critical
+  match: { services: [telnet] }
+
+- id: ftp_plain
+  level: warning
+  match: { proto: tcp, services: [ftp] }
+
+- id: smb_v1
+  level: critical
+  match: { smb_v1: true }
+
+- id: rdp_open
+  level: warning
+  match: { proto: tcp, ports: [3389] }
+
+- id: vnc_open
+  level: warning
+  match: { services: [vnc] }
+
+- id: docker_api
+  level: critical
+  match: { proto: tcp, ports: [2375] }
+
+- id: http_admin_plain
+  level: warning
+  match: { http_plain_admin: true }
+
+- id: tls_expired
+  level: warning
+  match: { tls_expired: true }
+
+- id: tls_expiring
+  level: warning
+  match: { tls_expires_within_days: 30 }
+
+- id: tls_self_signed
+  level: info
+  match: { tls_self_signed: true }
+
+- id: tls_old
+  level: warning
+  match: { tls_old_version: true }
+
+- id: snmp_public
+  level: warning
+  match: { snmp_public: true }
+
+- id: database_exposed
+  level: warning
+  match: { proto: tcp, ports: [1433, 1521, 3306, 5432, 5984, 6379, 9042, 9200, 11211, 27017, 33060] }
+
+- id: upnp
+  level: info
+  match: { ssdp: true }
+
+- id: ssh_v1
+  level: warning
+  match: { ssh_protocol_v1: true }
+
+- id: outdated
+  level: warning
+  match:
+    outdated:
+      - { product: OpenSSH, below: "8.0" }
+      - { product: dropbear, below: "2020.79" }
+      - { product: Apache, below: "2.4.58" }
+      - { product: nginx, below: "1.22" }
+      - { product: Microsoft-IIS, below: "8.5" }
+      - { product: lighttpd, below: "1.4.60" }
+      - { product: vsFTPd, below: "3.0" }
+      - { product: ProFTPD, below: "1.3.6" }
+      - { product: PHP, below: "8.1" }
+      - { product: Boa, below: "999" }      # serveur embarqué abandonné
+      - { product: GoAhead-Webs, below: "999" }

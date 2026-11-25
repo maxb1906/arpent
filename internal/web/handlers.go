@@ -289,12 +289,39 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 		top = top[:10]
 	}
 	data["TopPorts"] = top
+	findings, err := site.Findings(id)
+	if err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	data["Findings"] = findings
+	data["FindingCounts"] = store.FindingCounts(findings)
+	perDevice := map[int64]findingSummary{}
+	for _, f := range findings {
+		fs := perDevice[f.DeviceID]
+		switch f.Level {
+		case "critical":
+			fs.Critical++
+			fs.Score += 100
+		case "warning":
+			fs.Warning++
+			fs.Score += 10
+		default:
+			fs.Info++
+			fs.Score++
+		}
+		perDevice[f.DeviceID] = fs
+	}
+	data["DeviceFindings"] = perDevice
 	data["Types"] = sortedCounts(types)
 	if prev, _ := site.PreviousAudit(id); prev != 0 {
 		data["Previous"] = prev
 	}
 	s.render(w, r, "audit", data)
 }
+
+// findingSummary compte les points d'attention d'un appareil.
+type findingSummary struct{ Critical, Warning, Info, Score int }
 
 type kv struct {
 	Key   string
@@ -360,5 +387,12 @@ func (s *Server) devicePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	info, _ := site.Info()
-	s.render(w, r, "device", map[string]any{"Site": info, "Device": dev, "Obs": cur, "History": rows, "Audit": audits[cur.AuditID]})
+	all2, _ := site.Findings(cur.AuditID)
+	var findings []store.Finding
+	for _, f := range all2 {
+		if f.DeviceID == id {
+			findings = append(findings, f)
+		}
+	}
+	s.render(w, r, "device", map[string]any{"Site": info, "Device": dev, "Obs": cur, "History": rows, "Audit": audits[cur.AuditID], "Findings": findings})
 }

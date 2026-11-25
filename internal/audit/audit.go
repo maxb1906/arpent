@@ -58,6 +58,9 @@ type Result struct {
 // testPorts remplace la liste du profil dans les tests.
 var testPorts []int
 
+// SetTestPorts impose la liste de ports (tests d'autres paquets) ; nil rétablit.
+func SetTestPorts(p []int) { testPorts = p }
+
 // Run exécute l'audit complet.
 func Run(ctx context.Context, opt Options) (*Result, error) {
 	if opt.Profile == "" {

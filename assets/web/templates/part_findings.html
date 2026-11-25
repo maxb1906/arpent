@@ -1,0 +1,14 @@
+{{define "findings"}}{{/* . = dict "Findings" … "Slug" … "Link" bool */}}
+{{if .Findings}}
+<div class="findings">
+{{range .Findings}}
+  <details class="finding {{.Level}}">
+    <summary><span class="level {{.Level}}">{{t (print "level." .Level)}}</span> <b>{{ft .Rule "title" .Params}}</b>
+      <span class="muted small">— {{if $.Link}}<a href="/sites/{{$.Slug}}/devices/{{.DeviceID}}?audit={{.AuditID}}">{{if .Label}}{{.Label}} · {{end}}{{.IP}}</a>{{else}}{{.IP}}{{end}}{{if .Port}} · {{.Port}}/{{.Proto}}{{end}}</span></summary>
+    <p>{{ft .Rule "explain" .Params}}</p>
+    <p><b>{{t "web.fix"}} :</b> {{ft .Rule "fix" .Params}}</p>
+  </details>
+{{end}}
+</div>
+{{else}}<p class="muted">{{t "web.no_finding"}}</p>{{end}}
+{{end}}

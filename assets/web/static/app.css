@@ -83,3 +83,9 @@ ol.phases li.active { background: var(--accent); color: #fff; }
   header.top, footer, form, input[type=search] { display: none !important; }
   body { background: #fff; } .card, .stat { border-color: #ccc; break-inside: avoid; }
 }
+.level { display: inline-block; min-width: 1.6rem; text-align: center; padding: 0 .45rem; border-radius: 5px; font-size: .8rem; font-weight: 700; color: #fff; margin-right: .2rem; }
+.level.critical { background: var(--bad); } .level.warning { background: var(--warn); } .level.info { background: var(--info); }
+h2 .level { vertical-align: middle; }
+details.finding { border-left: 4px solid var(--line); padding: .45rem .8rem; margin: .4rem 0; background: var(--bg); border-radius: 0 6px 6px 0; }
+details.finding.critical { border-left-color: var(--bad); } details.finding.warning { border-left-color: var(--warn); } details.finding.info { border-left-color: var(--info); }
+details.finding summary { cursor: pointer; } details.finding p { margin: .4rem 0 .2rem; }

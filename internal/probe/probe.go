@@ -23,6 +23,14 @@ type Service struct {
 	TLS     *TLSInfo  `json:"tls,omitempty"`
 	HTTP    *HTTPInfo `json:"http,omitempty"`
 	SSH     *SSHInfo  `json:"ssh,omitempty"`
+	SMB     *SMBInfo  `json:"smb,omitempty"`
+}
+
+// SMBInfo décrit un serveur SMB (rempli par la sonde SMB).
+type SMBInfo struct {
+	SMBv1    bool     `json:"smbv1"`              // accepte encore SMB 1
+	Dialects []string `json:"dialects,omitempty"` // ex. 2.1, 3.1.1
+	Signing  string   `json:"signing,omitempty"`  // required, enabled
 }
 
 // Options règle les sondes.

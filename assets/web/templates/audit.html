@@ -20,9 +20,17 @@
 </div>
 
 <section class="card">
+  <h2>{{t "web.findings"}}
+    <span class="level critical">{{index .FindingCounts "critical"}}</span>
+    <span class="level warning">{{index .FindingCounts "warning"}}</span>
+    <span class="level info">{{index .FindingCounts "info"}}</span></h2>
+  {{template "findings" (dict "Findings" .Findings "Slug" .Site.Slug "Link" true)}}
+</section>
+
+<section class="card">
   <div class="row between"><h2>{{t "web.inventory"}}</h2><input type="search" placeholder="{{t "web.filter"}}" data-filter="#inventory"></div>
   <table class="list sortable" id="inventory">
-    <thead><tr><th data-sort="ip">{{t "col.ip"}}</th><th>{{t "col.name"}}</th><th>{{t "col.mac"}}</th><th>{{t "col.vendor"}}</th><th>{{t "web.type"}}</th><th data-sort="num">{{t "col.open_ports"}}</th></tr></thead>
+    <thead><tr><th data-sort="ip">{{t "col.ip"}}</th><th>{{t "col.name"}}</th><th>{{t "col.mac"}}</th><th>{{t "col.vendor"}}</th><th>{{t "web.type"}}</th><th data-sort="num">{{t "col.open_ports"}}</th><th data-sort="num">{{t "web.findings"}}</th></tr></thead>
     <tbody>
     {{range .Observations}}
     <tr>
@@ -32,6 +40,8 @@
       <td class="small">{{if .RandomMAC}}<span class="dim">{{t "discover.random_mac"}}</span>{{else}}{{.Vendor}}{{end}}</td>
       <td class="small">{{if .DeviceType}}{{t (print "type." .DeviceType)}}{{end}}</td>
       <td data-value="{{len .Services}}">{{range .Services}}<span class="port" title="{{.Name}}">{{.Key}}</span> {{end}}</td>
+      {{$fc := index $.Data.DeviceFindings .Device.ID}}
+      <td data-value="{{$fc.Score}}">{{with $fc.Critical}}<span class="level critical">{{.}}</span>{{end}}{{with $fc.Warning}}<span class="level warning">{{.}}</span>{{end}}{{with $fc.Info}}<span class="level info">{{.}}</span>{{end}}</td>
     </tr>
     {{end}}
     </tbody>
