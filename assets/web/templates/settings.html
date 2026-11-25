@@ -1,0 +1,35 @@
+{{define "title"}}{{t "web.settings"}}{{end}}
+{{define "crumbs"}}<a href="/">{{t "web.sites"}}</a> › {{t "web.settings"}}{{end}}
+{{define "content"}}
+{{with .Data}}
+<h1>{{t "web.settings"}}</h1>
+{{if .Saved}}<p class="notice">{{t "web.settings_saved"}}</p>{{end}}
+<form method="post" action="/settings">
+<div class="grid2">
+<section class="card stack">
+  <h2>{{t "web.settings_general"}}</h2>
+  <label>{{t "col.technician"}}<input name="technician" value="{{.C.Technician}}" maxlength="120"></label>
+  <label>{{t "web.default_profile"}}<select name="default_profile">
+    {{range .Profiles}}<option value="{{.}}"{{if eq (print .) $.Data.C.DefaultProfile}} selected{{end}}>{{t (print "profile." .)}}</option>{{end}}</select></label>
+  <label>{{t "web.report_lang_default"}}<select name="report_lang"><option value="">{{t "web.same_as_ui"}}</option>
+    {{range $.Langs}}<option value="{{.}}"{{if eq . $.Data.C.ReportLang}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+  <label>{{t "web.rate"}}<input type="number" name="rate" min="0" max="5000" value="{{.C.Rate}}"></label>
+  <label>{{t "web.reminder_days"}}<input type="number" name="reminder_days" min="0" max="3650" value="{{.C.ReminderDays}}"></label>
+</section>
+<section class="card stack">
+  <h2>{{t "web.settings_issuer"}}</h2>
+  <p class="hint">{{t "web.settings_issuer_hint"}}</p>
+  <label>{{t "web.issuer_name"}}<input name="issuer_name" value="{{.C.Issuer.Name}}" maxlength="120"></label>
+  <label>{{t "web.issuer_company"}}<input name="issuer_company" value="{{.C.Issuer.Company}}" maxlength="160"></label>
+  <label>{{t "web.issuer_contact"}}<input name="issuer_contact" value="{{.C.Issuer.Contact}}" maxlength="240"></label>
+  <label>{{t "web.issuer_legal"}}<textarea name="issuer_legal" rows="2">{{.C.Issuer.Legal}}</textarea></label>
+  <label>{{t "web.issuer_color"}}<input type="color" name="issuer_color" value="{{if .C.Issuer.Color}}{{.C.Issuer.Color}}{{else}}#1f5f8b{{end}}"></label>
+  <label>{{t "web.issuer_logo"}}<input name="issuer_logo" value="{{.C.Issuer.Logo}}" placeholder="logo.png">
+    <span class="hint">{{t "web.issuer_logo_hint" "dir" .DataDir}}</span></label>
+  {{if .LogoURI}}<img src="{{.LogoURI}}" alt="" class="logo-preview">{{else if .C.Issuer.Logo}}<p class="alert">{{t "web.logo_missing"}}</p>{{end}}
+</section>
+</div>
+<p><button class="primary">{{t "web.save"}}</button></p>
+</form>
+{{end}}
+{{end}}

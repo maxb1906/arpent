@@ -18,7 +18,7 @@ import (
 func cmdScan(e *env, args []string) int {
 	fs := e.newFlags("scan")
 	rng := fs.String("range", "", "")
-	profileName := fs.String("profile", "standard", "")
+	profileName := fs.String("profile", "", "")
 	rate := fs.Int("rate", 0, "")
 	noUDP := fs.Bool("no-udp", false, "")
 	noDiscover := fs.Bool("no-discover", false, "")
@@ -28,6 +28,15 @@ func cmdScan(e *env, args []string) int {
 	authorized := fs.Bool("authorized", false, "")
 	if code, ok := e.parse(fs, args); !ok {
 		return code
+	}
+	if *profileName == "" {
+		*profileName = e.config().DefaultProfile
+	}
+	if *technician == "" {
+		*technician = e.config().Technician
+	}
+	if *rate == 0 {
+		*rate = e.config().Rate
 	}
 	profile, err := portscan.ParseProfile(*profileName)
 	if err != nil {

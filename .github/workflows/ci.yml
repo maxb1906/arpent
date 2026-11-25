@@ -47,6 +47,11 @@ jobs:
           name: arpent-binaries
           path: dist/
           if-no-files-found: error
+      - name: Vérification de la configuration GoReleaser (à blanc)
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: "v2.20.1"
+          args: release --snapshot --clean --skip=publish
 
   smoke-windows:
     name: Lancement de l'exe Windows

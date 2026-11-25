@@ -21,6 +21,9 @@ func cmdReport(e *env, args []string) int {
 		return e.fail(fmt.Errorf("format : %s", *format))
 	}
 	rl := e.tr.Lang()
+	if *lang == "" {
+		*lang = e.config().ReportLang
+	}
 	if *lang != "" {
 		if !e.bundle.Has(*lang) {
 			return e.fail(fmt.Errorf("langue : %s", *lang))
@@ -64,5 +67,9 @@ func cmdReport(e *env, args []string) int {
 	return 0
 }
 
-// applyIssuer complète l'émetteur du rapport (profil, étape 13).
-var applyIssuer = func(e *env, d *report.Data) {}
+// applyIssuer complète l'émetteur du rapport avec le profil de config.yaml.
+func applyIssuer(e *env, d *report.Data) {
+	if dir, err := e.dataDir(); err == nil {
+		d.Issuer = report.IssuerFromConfig(dir, e.config().Issuer)
+	}
+}

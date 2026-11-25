@@ -17,7 +17,7 @@
     </div>{{end}}
     <label>{{t "col.profile"}}
       <select name="profile" id="profile">
-        {{range .Profiles}}<option value="{{.}}"{{if eq (print .) "standard"}} selected{{end}}>{{t (print "profile." .)}} — {{t (print "web.profile_desc." .)}}</option>{{end}}
+        {{range .Profiles}}<option value="{{.}}"{{if eq (print .) $.Data.DefaultProfile}} selected{{end}}>{{t (print "profile." .)}} — {{t (print "web.profile_desc." .)}}</option>{{end}}
       </select>
     </label>
     <label class="check" id="confirm-full" hidden><input type="checkbox" name="confirm_full" value="1"> {{t "ports.full_confirm"}}</label>

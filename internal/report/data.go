@@ -6,6 +6,7 @@ package report
 
 import (
 	"fmt"
+	"html/template"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -35,7 +36,7 @@ type Data struct {
 // Issuer décrit l'émetteur du rapport.
 type Issuer struct {
 	Name, Company, Contact, Legal, Color string
-	LogoDataURI                          string // image en data: URI
+	LogoDataURI                          template.URL // image en data: URI (contenu sûr : lu localement)
 }
 
 // Build charge les données d'un audit terminé.

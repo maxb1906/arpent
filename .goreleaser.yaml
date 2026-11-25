@@ -1,0 +1,43 @@
+# GoReleaser — publication des binaires dans les GitHub Releases à chaque tag vX.Y.Z.
+version: 2
+project_name: arpent
+dist: dist-goreleaser
+
+builds:
+  - id: arpent
+    main: ./cmd/arpent
+    binary: arpent
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{ .Version }}"]
+    targets: [windows_amd64, linux_amd64, linux_arm64, darwin_arm64]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: arpent
+    ids: [arpent]
+    name_template: "arpent_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [LICENSE, README.md, README.en.md]
+
+checksum:
+  name_template: SHA256SUMS
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^ci:"]
+
+release:
+  draft: false
+  prerelease: auto
+  name_template: "Arpent {{ .Version }}"
+  footer: |
+    **Windows** : téléchargez `arpent_{{ .Version }}_windows_amd64.zip`, décompressez-le sur une clé USB et double-cliquez sur `arpent.exe`.
+    L'exécutable n'est pas encore signé : Windows SmartScreen peut afficher un avertissement (« Informations complémentaires » → « Exécuter quand même »).
+    Vérifiez l'intégrité avec `SHA256SUMS`.

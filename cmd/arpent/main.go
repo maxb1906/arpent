@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/maxb1906/arpent/internal/config"
 	"github.com/maxb1906/arpent/internal/i18n"
 )
 
@@ -25,6 +26,7 @@ type env struct {
 	bundle *i18n.Bundle
 	tr     *i18n.Translator
 	data   string // --data
+	cfg    *config.Config
 	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer
@@ -74,7 +76,7 @@ type command struct {
 var commands = map[string]command{}
 
 // order fixe l'ordre d'affichage des commandes dans l'aide.
-var order = []string{"ui", "scan", "sites", "audits", "show", "report", "annotate", "discover", "ports", "interfaces", "arp", "hello", "version", "help"}
+var order = []string{"ui", "scan", "sites", "audits", "show", "report", "annotate", "config", "discover", "ports", "interfaces", "arp", "hello", "version", "help"}
 
 func init() {
 	commands["hello"] = command{run: cmdHello}
@@ -91,6 +93,7 @@ func init() {
 	commands["show"] = command{run: cmdShow}
 	commands["annotate"] = command{run: cmdAnnotate}
 	commands["report"] = command{run: cmdReport}
+	commands["config"] = command{run: cmdConfig}
 }
 
 func usage(e *env, w io.Writer) {
@@ -121,6 +124,14 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	data := fs.String("data", "", "")
 	parseErr := fs.Parse(args)
 
+	e.data = *data
+	if *lang == "" && os.Getenv("ARPENT_LANG") == "" {
+		// Langue enregistrée dans config.yaml, sinon celle du système.
+		e.tr = bundle.Translator(bundle.Detect())
+		if l := e.config().Lang; bundle.Has(l) {
+			*lang = l
+		}
+	}
 	if *lang == "" {
 		*lang = bundle.Detect()
 	} else if !bundle.Has(*lang) {
@@ -129,7 +140,6 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	e.tr = bundle.Translator(*lang)
-	e.data = *data
 
 	if parseErr == flag.ErrHelp {
 		usage(e, stdout)

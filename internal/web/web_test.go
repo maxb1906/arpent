@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -172,6 +174,31 @@ func TestAuditFlow(t *testing.T) {
 		t.Errorf("fiche appareil : %d", code)
 	}
 	noRawKeys(t, "appareil", body)
+
+	// Réglages : technicien et émetteur (avec logo) repris dans le rapport.
+	code, body = h.get("/settings")
+	if code != 200 || !strings.Contains(body, "Émetteur des rapports") {
+		t.Fatalf("réglages : %d", code)
+	}
+	noRawKeys(t, "réglages", body)
+	os.WriteFile(filepath.Join(h.srv.opt.DataDir, "logo.svg"), []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>`), 0o644)
+	_, _, body = h.post("/settings", url.Values{"technician": {"Max Test"}, "default_profile": {"quick"}, "issuer_company": {"Réseaux & Co"},
+		"issuer_logo": {"logo.svg"}, "issuer_color": {"#aa3300"}, "report_lang": {"en"}})
+	if !strings.Contains(body, "Réglages enregistrés") {
+		t.Error("réglages non enregistrés")
+	}
+	if !strings.Contains(body, `src="data:image/svg`) {
+		i := strings.Index(body, "logo")
+		t.Errorf("aperçu du logo absent : %s", body[i:min(len(body), i+600)])
+	}
+	code, body = h.get(auditPath + "/report?format=html")
+	if !strings.Contains(body, "Réseaux &amp; Co") || !strings.Contains(body, "data:image/svg") || !strings.Contains(body, "--accent:#aa3300") {
+		t.Errorf("émetteur absent du rapport : company=%v logo=%v color=%v", strings.Contains(body, "Réseaux &amp; Co"), strings.Contains(body, "data:image/svg"), strings.Contains(body, "--accent:#aa3300"))
+
+	}
+	if !strings.Contains(body, "Network audit report") {
+		t.Error("langue de rapport par défaut (en) ignorée")
+	}
 
 	// Rapport : affichage en anglais, export CSV, enregistrement dans le site.
 	code, body = h.get(auditPath + "/report?lang=en&format=html")

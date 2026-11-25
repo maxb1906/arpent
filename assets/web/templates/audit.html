@@ -14,7 +14,7 @@
   <form method="get" action="/sites/{{.Site.Slug}}/audits/{{.Audit.ID}}/report" target="_blank" class="row" id="report-form">
     <b>{{t "web.report"}}</b>
     <label class="inline-label">{{t "web.report_lang"}}
-      <select name="lang">{{range .Langs}}<option value="{{.}}"{{if eq . $.Lang}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+      <select name="lang">{{range .Langs}}<option value="{{.}}"{{if $.Data.ReportLang}}{{if eq . $.Data.ReportLang}} selected{{end}}{{else if eq . $.Lang}} selected{{end}}>{{.}}</option>{{end}}</select></label>
     <button name="format" value="html" class="primary">{{t "web.view"}}</button>
     <button formmethod="post" formtarget="_self" name="format" value="html">{{t "web.save_report"}}</button>
     <span class="muted">{{t "web.exports"}} :</span>

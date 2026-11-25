@@ -15,6 +15,7 @@ import (
 
 	"github.com/maxb1906/arpent/assets"
 	"github.com/maxb1906/arpent/internal/audit"
+	"github.com/maxb1906/arpent/internal/config"
 	"github.com/maxb1906/arpent/internal/engine"
 	"github.com/maxb1906/arpent/internal/i18n"
 	"github.com/maxb1906/arpent/internal/netinfo"
@@ -31,6 +32,8 @@ func (s *Server) routes() {
 	m.HandleFunc("POST /lang", s.setLang)
 	m.HandleFunc("POST /quit", s.quit)
 	m.HandleFunc("GET /{$}", s.home)
+	m.HandleFunc("GET /settings", s.settings)
+	m.HandleFunc("POST /settings", s.saveSettings)
 	m.HandleFunc("POST /sites", s.createSite)
 	m.HandleFunc("GET /sites/{slug}", s.site)
 	m.HandleFunc("POST /sites/{slug}/info", s.siteInfo)
@@ -109,8 +112,12 @@ func (s *Server) site(w http.ResponseWriter, r *http.Request) {
 	if len(audits) > 0 && audits[0].Ranges != "" {
 		ranges = []string{audits[0].Ranges} // reprendre les plages du dernier audit
 	}
-	technician := ""
+	cfg, _ := config.Load(s.opt.DataDir)
+	technician := cfg.Technician
 	for _, a := range audits {
+		if technician != "" {
+			break
+		}
 		if a.Technician != "" {
 			technician = a.Technician
 			break
@@ -118,7 +125,7 @@ func (s *Server) site(w http.ResponseWriter, r *http.Request) {
 	}
 	s.render(w, r, "site", map[string]any{
 		"Site": info, "Audits": audits, "Authorized": authorized, "AuthorizedAt": authAt,
-		"Subnets": subnets, "Ranges": strings.Join(ranges, ", "), "Profiles": portscan.Profiles,
+		"Subnets": subnets, "Ranges": strings.Join(ranges, ", "), "Profiles": portscan.Profiles, "DefaultProfile": cfg.DefaultProfile,
 		"Technician": technician, "Error": r.URL.Query().Get("error"),
 	})
 }
@@ -190,8 +197,9 @@ func (s *Server) startAudit(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer site.Close()
 		defer cancel()
+		cfg, _ := config.Load(s.opt.DataDir)
 		_, err := engine.Run(ctx, site, id, audit.Options{
-			Targets: targets, Profile: profile, NoUDP: r.FormValue("no_udp") == "1", Progress: j.progress,
+			Targets: targets, Profile: profile, NoUDP: r.FormValue("no_udp") == "1", Rate: cfg.Rate, Progress: j.progress,
 		})
 		switch {
 		case err == nil:
@@ -336,6 +344,8 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 	data["IsNew"] = isNew
 	data["Saved"] = r.URL.Query().Get("saved")
 	data["Langs"] = s.opt.Bundle.Languages()
+	cfg, _ := config.Load(s.opt.DataDir)
+	data["ReportLang"] = cfg.ReportLang
 	data["Types"] = sortedCounts(types)
 	if prev, _ := site.PreviousAudit(id); prev != 0 {
 		if pa, err := site.GetAudit(prev); err == nil {
@@ -489,12 +499,15 @@ func (s *Server) reportData(r *http.Request) (*store.Site, *report.Data, *i18n.T
 		site.Close()
 		return nil, nil, nil, "", err
 	}
-	if s.opt.Issuer != nil {
-		d.Issuer = s.opt.Issuer()
-	}
+	cfg, _ := config.Load(s.opt.DataDir)
+	d.Issuer = report.IssuerFromConfig(s.opt.DataDir, cfg.Issuer)
 	lang := r.FormValue("lang")
 	if !s.opt.Bundle.Has(lang) {
-		lang = s.lang(r)
+		if s.opt.Bundle.Has(cfg.ReportLang) {
+			lang = cfg.ReportLang
+		} else {
+			lang = s.lang(r)
+		}
 	}
 	format := r.FormValue("format")
 	if !slices.Contains(report.Formats, format) {
@@ -534,4 +547,38 @@ func (s *Server) reportSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/sites/"+site.Slug+"/audits/"+itoa64(d.Audit.ID)+"?saved="+url.QueryEscape(path), http.StatusSeeOther)
+}
+
+func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
+	c, err := config.Load(s.opt.DataDir)
+	if err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	is := report.IssuerFromConfig(s.opt.DataDir, c.Issuer)
+	s.render(w, r, "settings", map[string]any{"C": c, "Profiles": portscan.Profiles, "DataDir": s.opt.DataDir,
+		"LogoURI": is.LogoDataURI, "Saved": r.URL.Query().Get("saved") == "1"})
+}
+
+func (s *Server) saveSettings(w http.ResponseWriter, r *http.Request) {
+	c, _ := config.Load(s.opt.DataDir)
+	c.Technician = r.FormValue("technician")
+	c.DefaultProfile = r.FormValue("default_profile")
+	c.ReportLang = r.FormValue("report_lang")
+	if !s.opt.Bundle.Has(c.ReportLang) {
+		c.ReportLang = ""
+	}
+	c.Rate, _ = strconv.Atoi(r.FormValue("rate"))
+	c.ReminderDays, _ = strconv.Atoi(r.FormValue("reminder_days"))
+	c.Issuer = config.Issuer{Name: r.FormValue("issuer_name"), Company: r.FormValue("issuer_company"),
+		Contact: r.FormValue("issuer_contact"), Legal: r.FormValue("issuer_legal"), Color: r.FormValue("issuer_color"),
+		Logo: strings.TrimSpace(r.FormValue("issuer_logo"))}
+	if c.Issuer.Color == "#1f5f8b" {
+		c.Issuer.Color = "" // couleur par défaut : rien à enregistrer
+	}
+	if err := config.Save(s.opt.DataDir, c); err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	http.Redirect(w, r, "/settings?saved=1", http.StatusSeeOther)
 }

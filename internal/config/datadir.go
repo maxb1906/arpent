@@ -16,6 +16,24 @@ const DirName = "arpent-data"
 // sinon arpent-data/ à côté de l'exécutable (dans le dossier courant pour
 // « go run » ou « go test »). Le dossier est créé et doit être inscriptible.
 func DataDir(flag string) (string, error) {
+	dir, err := Resolve(flag)
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	f, err := os.CreateTemp(dir, ".write-test-*")
+	if err != nil {
+		return "", errors.New("dossier de données non inscriptible : " + dir)
+	}
+	f.Close()
+	os.Remove(f.Name())
+	return dir, nil
+}
+
+// Resolve calcule le dossier de données comme DataDir, sans le créer.
+func Resolve(flag string) (string, error) {
 	dir := flag
 	if dir == "" {
 		dir = os.Getenv("ARPENT_DATA")
@@ -31,20 +49,7 @@ func DataDir(flag string) (string, error) {
 		}
 		dir = filepath.Join(base, DirName)
 	}
-	dir, err := filepath.Abs(dir)
-	if err != nil {
-		return "", err
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", err
-	}
-	f, err := os.CreateTemp(dir, ".write-test-*")
-	if err != nil {
-		return "", errors.New("dossier de données non inscriptible : " + dir)
-	}
-	f.Close()
-	os.Remove(f.Name())
-	return dir, nil
+	return filepath.Abs(dir)
 }
 
 func isTempBuild(exe string) bool {
