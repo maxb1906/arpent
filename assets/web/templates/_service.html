@@ -1,0 +1,8 @@
+{{define "service"}}{{/* résumé d'un service : . = store.Service */}}
+{{with .Details}}
+  {{if .Product}}<span class="tag">{{.Product}} {{.Version}}</span>{{end}}
+  {{with .HTTP}}{{if .Title}}<span class="title">« {{.Title}} »</span>{{end}} <span class="tag dim">{{.Status}}</span>{{if .Location}} <span class="dim small">→ {{.Location}}</span>{{end}}{{if .AuthRealm}} <span class="tag">🔑 {{.AuthRealm}}</span>{{end}}{{end}}
+  {{with .TLS}}<span class="tag{{if past .NotAfter}} bad{{else if lt (daysUntil .NotAfter) 30}} warn{{end}}">🔒 {{.Version}}{{if .SelfSigned}} · {{t "scan.self_signed"}}{{end}} · {{date .NotAfter}}</span>{{end}}
+  {{if and (not .Product) (not .HTTP) (not .TLS) .Banner}}<span class="mono small dim">{{.Banner}}</span>{{end}}
+{{end}}
+{{end}}

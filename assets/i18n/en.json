@@ -79,6 +79,7 @@
   "phase.discovery": "Discovering devices…",
   "phase.ports": "Scanning ports…",
   "phase.probes": "Identifying services…",
+  "phase.save": "Saving and analysing…",
   "ports.full_confirm": "The full profile tests all 65535 ports on each device: it is slow and more visible on the network. Continue?",
   "ports.no_host": "No active device to scan.",
   "ports.running": "Scanning {hosts} device(s), {ports} TCP ports ({profile} profile)…",

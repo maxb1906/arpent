@@ -1,0 +1,24 @@
+{{define "title"}}{{t "web.sites"}}{{end}}
+{{define "content"}}
+<section class="card">
+  <h1>{{t "web.sites"}}</h1>
+  {{with .Data.Sites}}
+  <table class="list">
+    <thead><tr><th>{{t "col.site"}}</th><th>{{t "col.audits"}}</th><th>{{t "col.last_audit"}}</th></tr></thead>
+    <tbody>
+    {{range .}}<tr><td><a href="/sites/{{.Slug}}">{{.Name}}</a></td><td>{{.Audits}}</td><td>{{datetime .LastAudit}}</td></tr>{{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">{{t "web.no_site"}}</p>
+  {{end}}
+</section>
+<section class="card">
+  <h2>{{t "web.new_site"}}</h2>
+  <form method="post" action="/sites" class="row">
+    <input name="name" required maxlength="120" placeholder="{{t "web.site_name_placeholder"}}" autofocus>
+    <button class="primary">{{t "web.create"}}</button>
+  </form>
+  <p class="muted small">{{t "web.data_dir" "dir" .Data.DataDir}}</p>
+</section>
+{{end}}

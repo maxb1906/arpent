@@ -1,0 +1,4 @@
+{{define "title"}}{{t "web.error"}}{{end}}
+{{define "content"}}
+<section class="card"><h1>{{t "web.error"}} {{.Data.Status}}</h1><p class="alert">{{.Data.Error}}</p><p><a href="/">{{t "web.back_home"}}</a></p></section>
+{{end}}

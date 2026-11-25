@@ -1,0 +1,41 @@
+{{define "title"}}{{.Data.Site.Name}} — #{{.Data.Audit.ID}}{{end}}
+{{define "crumbs"}}<a href="/">{{t "web.sites"}}</a> › <a href="/sites/{{.Data.Site.Slug}}">{{.Data.Site.Name}}</a> › #{{.Data.Audit.ID}}{{end}}
+{{define "content"}}
+{{with .Data}}
+<h1>{{.Site.Name}} <span class="muted">— {{t "web.audit_of" "date" (datetime .Audit.Started)}}</span></h1>
+<p class="muted">
+  <span class="status {{.Audit.Status}}">{{t (print "status." .Audit.Status)}}</span>
+  · {{t "col.profile"}} : {{t (print "profile." .Audit.Profile)}} · <span class="mono">{{.Audit.Ranges}}</span>
+  · {{t "web.duration"}} : {{duration .Audit.Started .Audit.Finished}}{{if .Audit.Technician}} · {{.Audit.Technician}}{{end}}
+</p>
+{{if .Audit.Error}}<p class="alert">{{.Audit.Error}}</p>{{end}}
+
+<div class="stats">
+  <div class="stat"><b>{{len .Observations}}</b><span>{{t "col.devices"}}</span></div>
+  <div class="stat"><b>{{.Audit.Ports}}</b><span>{{t "col.open_ports"}}</span></div>
+  <div class="stat wide"><span>{{t "web.by_type"}}</span>
+    <div class="chips">{{range .Types}}<span class="chip">{{t (print "type." .Key)}} <b>{{.Count}}</b></span>{{end}}</div></div>
+  <div class="stat wide"><span>{{t "web.top_ports"}}</span>
+    <div class="chips">{{range .TopPorts}}<span class="chip mono">{{.Key}}{{if .Name}} {{.Name}}{{end}} <b>{{.Count}}</b></span>{{end}}</div></div>
+</div>
+
+<section class="card">
+  <div class="row between"><h2>{{t "web.inventory"}}</h2><input type="search" placeholder="{{t "web.filter"}}" data-filter="#inventory"></div>
+  <table class="list sortable" id="inventory">
+    <thead><tr><th data-sort="ip">{{t "col.ip"}}</th><th>{{t "col.name"}}</th><th>{{t "col.mac"}}</th><th>{{t "col.vendor"}}</th><th>{{t "web.type"}}</th><th data-sort="num">{{t "col.open_ports"}}</th></tr></thead>
+    <tbody>
+    {{range .Observations}}
+    <tr>
+      <td class="mono"><a href="/sites/{{$.Data.Site.Slug}}/devices/{{.Device.ID}}?audit={{.AuditID}}">{{.IP}}</a></td>
+      <td>{{if .Device.Label}}<b>{{.Device.Label}}</b><br>{{end}}<span class="small">{{join .Names ", "}}</span>{{if .Device.Known}} <span class="tag ok" title="{{t "web.known"}}">✓</span>{{end}}</td>
+      <td class="mono small">{{.MAC}}</td>
+      <td class="small">{{if .RandomMAC}}<span class="dim">{{t "discover.random_mac"}}</span>{{else}}{{.Vendor}}{{end}}</td>
+      <td class="small">{{if .DeviceType}}{{t (print "type." .DeviceType)}}{{end}}</td>
+      <td data-value="{{len .Services}}">{{range .Services}}<span class="port" title="{{.Name}}">{{.Key}}</span> {{end}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{end}}

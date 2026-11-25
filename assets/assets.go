@@ -14,3 +14,8 @@ var I18n embed.FS
 //
 //go:embed oui.tsv.gz
 var OUI []byte
+
+// Web contient l'interface locale : web/templates/*.html et web/static/*.
+//
+//go:embed web
+var Web embed.FS

@@ -1,0 +1,65 @@
+{{define "title"}}{{.Data.Site.Name}}{{end}}
+{{define "crumbs"}}<a href="/">{{t "web.sites"}}</a> › {{.Data.Site.Name}}{{end}}
+{{define "content"}}
+{{with .Data}}
+<h1>{{.Site.Name}}</h1>
+{{if .Error}}<p class="alert">{{t .Error}}</p>{{end}}
+<div class="grid2">
+<section class="card">
+  <h2>{{t "web.new_audit"}}</h2>
+  <form method="post" action="/sites/{{.Site.Slug}}/audits" class="stack" id="audit-form">
+    <label>{{t "web.ranges"}}
+      <input name="ranges" value="{{.Ranges}}" required>
+      <span class="hint">{{t "web.ranges_hint"}}</span>
+    </label>
+    {{if .Subnets}}<div class="hint">{{t "netinfo.suggested"}}
+      {{range .Subnets}}<button type="button" class="chip" data-fill-ranges="{{.Prefix}}">{{.Prefix}}</button> <span class="muted">{{.Interface}}</span> {{end}}
+    </div>{{end}}
+    <label>{{t "col.profile"}}
+      <select name="profile" id="profile">
+        {{range .Profiles}}<option value="{{.}}"{{if eq (print .) "standard"}} selected{{end}}>{{t (print "profile." .)}} — {{t (print "web.profile_desc." .)}}</option>{{end}}
+      </select>
+    </label>
+    <label class="check" id="confirm-full" hidden><input type="checkbox" name="confirm_full" value="1"> {{t "ports.full_confirm"}}</label>
+    <label class="check"><input type="checkbox" name="no_udp" value="1"> {{t "flag.scan.no-udp"}}</label>
+    <label>{{t "col.technician"}}<input name="technician" value="{{.Technician}}" maxlength="120"></label>
+    {{if not .Authorized}}
+    <div class="legal">
+      <p>{{t "legal.warning"}}</p>
+      <label class="check"><input type="checkbox" name="authorized" value="1" required> {{t "legal.confirm" "site" .Site.Name}}</label>
+    </div>
+    {{else}}
+    <p class="muted small">{{t "web.authorized_on" "date" (datetime .AuthorizedAt)}}</p>
+    {{end}}
+    <button class="primary">{{t "web.start_audit"}}</button>
+  </form>
+</section>
+<section class="card">
+  <h2>{{t "web.site_info"}}</h2>
+  <form method="post" action="/sites/{{.Site.Slug}}/info" class="stack">
+    <label>{{t "web.address"}}<input name="address" value="{{.Site.Address}}"></label>
+    <label>{{t "web.contact"}}<input name="contact" value="{{.Site.Contact}}"></label>
+    <label>{{t "web.notes"}}<textarea name="notes" rows="3">{{.Site.Notes}}</textarea></label>
+    <button>{{t "web.save"}}</button>
+  </form>
+</section>
+</div>
+<section class="card">
+  <h2>{{t "web.audits"}}</h2>
+  {{if .Audits}}
+  <table class="list">
+    <thead><tr><th>#</th><th>{{t "col.date"}}</th><th>{{t "col.status"}}</th><th>{{t "col.profile"}}</th><th>{{t "web.ranges"}}</th><th>{{t "col.devices"}}</th><th>{{t "col.open_ports"}}</th><th>{{t "col.technician"}}</th></tr></thead>
+    <tbody>
+    {{range .Audits}}<tr>
+      <td><a href="/sites/{{$.Data.Site.Slug}}/audits/{{.ID}}">{{.ID}}</a></td>
+      <td><a href="/sites/{{$.Data.Site.Slug}}/audits/{{.ID}}">{{datetime .Started}}</a></td>
+      <td><span class="status {{.Status}}">{{t (print "status." .Status)}}</span></td>
+      <td>{{t (print "profile." .Profile)}}</td><td class="mono small">{{.Ranges}}</td>
+      <td>{{.Devices}}</td><td>{{.Ports}}</td><td>{{.Technician}}</td>
+    </tr>{{end}}
+    </tbody>
+  </table>
+  {{else}}<p class="muted">{{t "web.no_audit"}}</p>{{end}}
+</section>
+{{end}}
+{{end}}

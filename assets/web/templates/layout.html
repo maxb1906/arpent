@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{block "title" .}}Arpent{{end}} — Arpent</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><img src="/static/favicon.svg" alt="" width="22" height="22"> Arpent</a>
+  <nav class="crumbs">{{block "crumbs" .}}{{end}}</nav>
+  <div class="tools">
+    {{if .Running}}<a class="pill running" href="/sites/{{.Running.Site}}/audits/{{.Running.AuditID}}">● {{t "web.audit_running"}}</a>{{end}}
+    <form method="post" action="/lang" class="inline">
+      <input type="hidden" name="back" value="{{.Path}}">
+      {{range .Langs}}<button name="lang" value="{{.}}" class="link{{if eq . $.Lang}} active{{end}}">{{.}}</button>{{end}}
+    </form>
+    <form method="post" action="/quit" class="inline" data-confirm="{{t "web.quit_confirm"}}">
+      <button class="link">{{t "web.quit"}}</button>
+    </form>
+  </div>
+</header>
+<main>
+{{block "content" .}}{{end}}
+</main>
+<footer>Arpent {{.Version}} · GPL-3.0 · {{t "web.footer_local"}}</footer>
+</body>
+</html>

@@ -79,6 +79,7 @@
   "phase.discovery": "Découverte des appareils…",
   "phase.ports": "Scan des ports…",
   "phase.probes": "Identification des services…",
+  "phase.save": "Enregistrement et analyse…",
   "ports.full_confirm": "Le profil complet teste les 65535 ports de chaque appareil : c'est long et plus visible sur le réseau. Continuer ?",
   "ports.no_host": "Aucun appareil actif à scanner.",
   "ports.running": "Scan de {hosts} appareil(s), {ports} ports TCP (profil {profile})…",

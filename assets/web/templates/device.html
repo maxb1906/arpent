@@ -1,0 +1,67 @@
+{{define "title"}}{{.Data.Obs.DisplayName}}{{end}}
+{{define "crumbs"}}<a href="/">{{t "web.sites"}}</a> › <a href="/sites/{{.Data.Site.Slug}}">{{.Data.Site.Name}}</a> › <a href="/sites/{{.Data.Site.Slug}}/audits/{{.Data.Obs.AuditID}}">#{{.Data.Obs.AuditID}}</a> › {{.Data.Obs.IP}}{{end}}
+{{define "content"}}
+{{with .Data}}
+<h1>{{.Obs.DisplayName}} {{if .Device.Known}}<span class="tag ok">{{t "web.known"}}</span>{{end}}</h1>
+<dl class="facts">
+  <dt>{{t "col.ip"}}</dt><dd class="mono">{{.Obs.IP}}</dd>
+  <dt>{{t "col.mac"}}</dt><dd class="mono">{{if .Obs.MAC}}{{.Obs.MAC}}{{else}}—{{end}}</dd>
+  <dt>{{t "col.vendor"}}</dt><dd>{{if .Obs.RandomMAC}}{{t "discover.random_mac"}}{{else if .Obs.Vendor}}{{.Obs.Vendor}}{{else}}—{{end}}</dd>
+  <dt>{{t "col.name"}}</dt><dd>{{if .Obs.Names}}{{join .Obs.Names ", "}}{{else}}—{{end}}</dd>
+  <dt>{{t "web.type"}}</dt><dd>{{if .Obs.DeviceType}}{{t (print "type." .Obs.DeviceType)}}{{else}}—{{end}}</dd>
+  <dt>{{t "col.methods"}}</dt><dd>{{join .Obs.Methods ", "}}</dd>
+  <dt>{{t "web.seen"}}</dt><dd>{{t "web.seen_in" "count" (len .History)}}</dd>
+</dl>
+
+<section class="card">
+  <h2>{{t "web.services"}} <span class="muted small">— {{t "web.audit_of" "date" (datetime .Audit.Started)}}</span></h2>
+  {{if not .Obs.Services}}<p class="muted">{{t "scan.no_port"}}</p>{{end}}
+  {{range .Obs.Services}}
+  <details class="service" open>
+    <summary><span class="port">{{.Key}}</span> <b>{{.Name}}</b> {{template "service" .}}</summary>
+    <div class="svc-body">
+      {{with .Details.HTTP}}
+      <dl class="facts small">
+        <dt>HTTP</dt><dd>{{.Status}}{{if .Title}} — {{.Title}}{{end}}</dd>
+        {{if .Server}}<dt>Server</dt><dd class="mono">{{.Server}}</dd>{{end}}
+        {{if .PoweredBy}}<dt>X-Powered-By</dt><dd class="mono">{{.PoweredBy}}</dd>{{end}}
+        {{if .Location}}<dt>Location</dt><dd class="mono">{{.Location}}</dd>{{end}}
+        {{if .AuthRealm}}<dt>{{t "web.auth_realm"}}</dt><dd>{{.AuthRealm}}</dd>{{end}}
+        {{if .HasFavicon}}<dt>Favicon</dt><dd class="mono">mmh3 {{.FaviconHash}}</dd>{{end}}
+      </dl>
+      {{end}}
+      {{with .Details.TLS}}
+      <dl class="facts small">
+        <dt>TLS</dt><dd>{{.Version}} · {{.Cipher}}</dd>
+        <dt>{{t "web.cert_subject"}}</dt><dd>{{.Subject}}</dd>
+        <dt>{{t "web.cert_issuer"}}</dt><dd>{{.Issuer}}{{if .SelfSigned}} <span class="tag">{{t "scan.self_signed"}}</span>{{end}}</dd>
+        {{if .DNSNames}}<dt>SAN</dt><dd class="mono">{{join .DNSNames ", "}}</dd>{{end}}
+        <dt>{{t "web.cert_validity"}}</dt><dd>{{date .NotBefore}} → {{date .NotAfter}}{{if past .NotAfter}} <span class="tag bad">{{t "scan.expired"}}</span>{{end}}</dd>
+        <dt>{{t "web.cert_key"}}</dt><dd>{{.KeyBits}} bits · {{.SigAlg}}</dd>
+        <dt>SHA-256</dt><dd class="mono small wrap">{{.SHA256}}</dd>
+      </dl>
+      {{end}}
+      {{with .Details.SSH}}
+      <dl class="facts small"><dt>SSH</dt><dd>{{t "web.ssh_protocol"}} {{.Protocol}} · {{.Software}} {{.Comment}}</dd></dl>
+      {{end}}
+      {{if .Banner}}<pre class="banner">{{.Banner}}</pre>{{end}}
+    </div>
+  </details>
+  {{end}}
+</section>
+
+<section class="card">
+  <h2>{{t "web.history"}}</h2>
+  <table class="list">
+    <thead><tr><th>{{t "col.date"}}</th><th>{{t "col.ip"}}</th><th>{{t "col.open_ports"}}</th></tr></thead>
+    <tbody>
+    {{range .History}}<tr{{if eq .Obs.AuditID $.Data.Obs.AuditID}} class="current"{{end}}>
+      <td><a href="/sites/{{$.Data.Site.Slug}}/devices/{{$.Data.Device.ID}}?audit={{.Obs.AuditID}}">{{datetime .Audit.Started}}</a></td>
+      <td class="mono">{{.Obs.IP}}</td>
+      <td>{{range .Obs.Services}}<span class="port">{{.Key}}</span> {{end}}</td>
+    </tr>{{end}}
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{end}}

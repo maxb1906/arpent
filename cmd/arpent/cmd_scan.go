@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net/netip"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/maxb1906/arpent/internal/audit"
+	"github.com/maxb1906/arpent/internal/engine"
 	"github.com/maxb1906/arpent/internal/netinfo"
 	"github.com/maxb1906/arpent/internal/portscan"
 	"github.com/maxb1906/arpent/internal/probe"
@@ -41,7 +43,7 @@ func cmdScan(e *env, args []string) int {
 	}
 	opt := audit.Options{Targets: targets, Profile: profile, Rate: *rate, NoUDP: *noUDP, NoDiscovery: *noDiscover}
 	if *site == "" {
-		res, err := runAudit(e, opt)
+		res, err := runAudit(e, opt, func(o audit.Options) (*audit.Result, error) { return audit.Run(e.ctx, o) })
 		if err != nil {
 			return e.fail(err)
 		}
@@ -69,20 +71,12 @@ func cmdScan(e *env, args []string) int {
 		}
 		meta.AuthorizedAt, meta.AuthorizedBy = time.Now(), *technician
 	}
-	id, err := s.BeginAudit(meta)
+	id, err := engine.Begin(s, meta)
 	if err != nil {
 		return e.fail(err)
 	}
-	res, err := runAudit(e, opt)
+	res, err := runAudit(e, opt, func(o audit.Options) (*audit.Result, error) { return engine.Run(e.ctx, s, id, o) })
 	if err != nil {
-		status := store.StatusFailed
-		if e.ctx.Err() != nil {
-			status = store.StatusCancelled
-		}
-		s.EndAudit(id, status, err)
-		return e.fail(err)
-	}
-	if err := s.CompleteAudit(id, res, nil); err != nil {
 		return e.fail(err)
 	}
 	obs, err := s.Observations(id)
@@ -111,11 +105,16 @@ func rangeLabel(rng string, targets []netip.Addr) string {
 }
 
 // runAudit lance un audit en affichant la progression par phase.
-func runAudit(e *env, opt audit.Options) (*audit.Result, error) {
+func runAudit(e *env, opt audit.Options, run func(audit.Options) (*audit.Result, error)) (*audit.Result, error) {
 	fmt.Fprintln(e.stderr, e.T("scan.running", "count", fmt.Sprint(len(opt.Targets)), "profile", e.T("profile."+string(opt.Profile))))
-	var cur string
-	var p *progress
+	var (
+		mu  sync.Mutex // les phases appellent Progress depuis plusieurs goroutines
+		cur string
+		p   *progress
+	)
 	opt.Progress = func(phase string, done, total int) {
+		mu.Lock()
+		defer mu.Unlock()
 		if phase != cur {
 			if p != nil {
 				p.done()
@@ -126,7 +125,7 @@ func runAudit(e *env, opt audit.Options) (*audit.Result, error) {
 		}
 		p.update(done, total)
 	}
-	res, err := audit.Run(e.ctx, opt)
+	res, err := run(opt)
 	if p != nil {
 		p.done()
 	}

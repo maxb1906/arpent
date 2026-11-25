@@ -1,0 +1,21 @@
+{{define "title"}}{{t "web.audit_running"}}{{end}}
+{{define "crumbs"}}<a href="/">{{t "web.sites"}}</a> › <a href="/sites/{{.Data.Site.Slug}}">{{.Data.Site.Name}}</a> › #{{.Data.Audit.ID}}{{end}}
+{{define "content"}}
+{{with .Data}}
+<section class="card" id="progress" data-url="/api/sites/{{.Site.Slug}}/audits/{{.Audit.ID}}/progress">
+  <h1>{{t "web.audit_running"}} — {{.Site.Name}}</h1>
+  <p class="muted">{{t "web.ranges"}} : <span class="mono">{{.Audit.Ranges}}</span> · {{t "col.profile"}} : {{t (print "profile." .Audit.Profile)}}</p>
+  <ol class="phases">
+    <li data-phase="discovery">{{t "phase.discovery"}}</li>
+    <li data-phase="ports">{{t "phase.ports"}}</li>
+    <li data-phase="probes">{{t "phase.probes"}}</li>
+    <li data-phase="save">{{t "phase.save"}}</li>
+  </ol>
+  <div class="bar"><div class="fill" style="width:0%"></div></div>
+  <p class="counter mono">…</p>
+  <p class="alert" hidden id="progress-error"></p>
+  <p class="muted" hidden id="progress-lost">{{t "web.progress_lost"}}</p>
+  <form method="post" action="/sites/{{.Site.Slug}}/audits/{{.Audit.ID}}/cancel"><button>{{t "web.cancel"}}</button></form>
+</section>
+{{end}}
+{{end}}
