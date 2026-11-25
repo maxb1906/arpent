@@ -33,7 +33,12 @@ Scanner un réseau sans autorisation est **illégal**, en Belgique comme ailleur
 
 Toutes les données sont dans le dossier `arpent-data/`, **à côté de l'exécutable** : préférences (`config.yaml`) et un dossier par site (`sites/<site>/site.db` et `rapports/`). Rien n'est écrit dans le registre ni dans `%APPDATA%`.
 
-> **Windows SmartScreen / antivirus** : l'exécutable n'est pas encore signé. Windows peut afficher « Windows a protégé votre ordinateur » : cliquez sur « Informations complémentaires » puis « Exécuter quand même ». Un outil qui scanne le réseau peut aussi être signalé par certains antivirus ; vérifiez l'empreinte avec le fichier `SHA256SUMS` de la release. La signature de code via SignPath Foundation est en préparation : voir [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
+> **Windows bloque l'exe** : l'exécutable n'est pas encore signé. Selon le PC :
+> - **SmartScreen** (« Windows a protégé votre ordinateur ») : cliquez sur « Informations complémentaires » puis « Exécuter quand même ».
+> - **Contrôle intelligent des applications** (Windows 11) : l'exe est bloqué **sans bouton pour passer outre** ni exception par application. La seule solution est de le désactiver (Sécurité Windows → *Contrôle des applications et du navigateur* → *Paramètres du Contrôle intelligent des applications* → *Désactivé*) ; depuis la mise à jour d'avril 2026 de Windows 11, on peut le réactiver ensuite sans réinstaller Windows. Sinon, utilisez un autre poste ou une VM.
+> - Un outil qui scanne le réseau peut aussi être signalé par certains **antivirus**.
+>
+> Vérifiez l'empreinte avec le fichier `SHA256SUMS` de la release. La signature de code via SignPath Foundation, qui lèvera ces blocages, est en préparation : voir [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
 
 ## Ligne de commande
 

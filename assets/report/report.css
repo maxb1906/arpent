@@ -1,6 +1,18 @@
-:root { --accent: #1f5f8b; --fg: #1b2530; --muted: #5d6b78; --line: #d5dce3; --bad: #b42318; --warn: #a86200; --info: #2a6db0; --ok: #1e7a46; }
+/* Palette commune Arpent · Aplomb · Jalon : bloc à garder identique dans les trois dépôts. */
+:root {
+  --accent: #1f5f8b;
+  --fg: #1b2530; --muted: #5d6b78; --line: #d5dce3; --bg: #f6f7f9; --card: #fff;
+  --bad: #b42318; --bad-bg: #fde8e6;
+  --warn: #a86200; --warn-bg: #fdf0dc;
+  --info: #2a6db0; --info-bg: #e8f1fb;
+  --ok: #1e7a46; --ok-bg: #e3f4ea;
+  --na: #667085; --na-bg: #f2f4f7;
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --mono: Consolas, "Cascadia Mono", ui-monospace, Menlo, monospace;
+}
+/* Fin de la palette commune. */
 * { box-sizing: border-box; }
-body { margin: 0 auto; max-width: 960px; padding: 2rem; font: 10.5pt/1.5 "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif; color: var(--fg); background: #fff; }
+body { margin: 0 auto; max-width: 960px; padding: 2rem; font: 10.5pt/1.5 var(--font); color: var(--fg); background: #fff; }
 h1 { font-size: 26pt; margin: .2em 0; color: var(--accent); }
 h2 { font-size: 16pt; color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: .2em; margin: 1.6em 0 .7em; }
 h3 { font-size: 12pt; margin: 1.1em 0 .4em; }
@@ -8,7 +20,7 @@ p { margin: .45em 0; }
 table { width: 100%; border-collapse: collapse; margin: .5em 0 1em; font-size: 9.5pt; }
 th, td { text-align: left; padding: .3em .45em; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { background: #f1f4f7; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
-.mono { font-family: Consolas, "Cascadia Mono", Menlo, monospace; font-size: .92em; }
+.mono { font-family: var(--mono); font-size: .92em; }
 .small { font-size: 8.5pt; } .muted { color: var(--muted); } .wrap { word-break: break-all; }
 .toolbar { position: fixed; top: 1rem; right: 1rem; }
 .toolbar button { font: inherit; padding: .5em 1em; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
@@ -21,7 +33,7 @@ th { background: #f1f4f7; font-size: 8.5pt; text-transform: uppercase; letter-sp
 dt { color: var(--muted); } dd { margin: 0; }
 .confidential { margin-top: auto; font-size: 9pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: .6em; }
 .risk { display: inline-flex; gap: .6em; align-items: center; padding: .5em 1em; border-radius: 8px; font-size: 12pt; margin: .3em 0 .8em; }
-.risk.high { background: #fde8e6; color: var(--bad); } .risk.medium { background: #fdf0dc; color: var(--warn); } .risk.low { background: #e3f4ea; color: var(--ok); }
+.risk.high { background: var(--bad-bg); color: var(--bad); } .risk.medium { background: var(--warn-bg); color: var(--warn); } .risk.low { background: var(--ok-bg); color: var(--ok); }
 .kpis { display: flex; gap: .8em; margin: 1em 0; flex-wrap: wrap; }
 .kpis div { flex: 1; min-width: 7em; border: 1px solid var(--line); border-radius: 8px; padding: .6em .8em; color: var(--muted); font-size: 9pt; }
 .kpis b { display: block; font-size: 20pt; color: var(--fg); line-height: 1.1; }
