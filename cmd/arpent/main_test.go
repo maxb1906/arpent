@@ -63,3 +63,20 @@ func TestHelpIsTranslated(t *testing.T) {
 		}
 	}
 }
+
+func TestPortsFullNeedsConfirmation(t *testing.T) {
+	old := stdin
+	defer func() { stdin = old }()
+	stdin = strings.NewReader("n\n")
+	code, out := runCLI(t, "--lang", "en", "ports", "--profile", "full", "--range", "127.0.0.1")
+	if code != 1 || !strings.Contains(out, "Cancelled") {
+		t.Errorf("code %d : %s", code, out)
+	}
+}
+
+func TestPortsLoopback(t *testing.T) {
+	code, out := runCLI(t, "--lang", "en", "ports", "--profile", "quick", "--range", "127.0.0.1", "--no-discover", "--no-udp")
+	if code != 0 || !strings.Contains(out, "127.0.0.1") {
+		t.Errorf("code %d : %s", code, out)
+	}
+}

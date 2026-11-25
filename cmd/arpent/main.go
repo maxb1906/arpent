@@ -13,6 +13,9 @@ import (
 	"github.com/maxb1906/arpent/internal/i18n"
 )
 
+// stdin est remplaçable dans les tests.
+var stdin io.Reader = os.Stdin
+
 // version est injectée à la compilation : -ldflags "-X main.version=v0.1.0".
 var version = "dev"
 
@@ -21,6 +24,7 @@ type env struct {
 	ctx    context.Context
 	bundle *i18n.Bundle
 	tr     *i18n.Translator
+	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer
 }
@@ -69,7 +73,7 @@ type command struct {
 var commands = map[string]command{}
 
 // order fixe l'ordre d'affichage des commandes dans l'aide.
-var order = []string{"hello", "interfaces", "arp", "discover", "version", "help"}
+var order = []string{"hello", "interfaces", "arp", "discover", "ports", "version", "help"}
 
 func init() {
 	commands["hello"] = command{run: cmdHello}
@@ -78,6 +82,7 @@ func init() {
 	commands["interfaces"] = command{run: cmdInterfaces}
 	commands["arp"] = command{run: cmdARP}
 	commands["discover"] = command{run: cmdDiscover}
+	commands["ports"] = command{run: cmdPorts}
 }
 
 func usage(e *env, w io.Writer) {
@@ -100,7 +105,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
-	e := &env{ctx: ctx, bundle: bundle, stdout: stdout, stderr: stderr}
+	e := &env{ctx: ctx, bundle: bundle, stdin: stdin, stdout: stdout, stderr: stderr}
 
 	fs := flag.NewFlagSet("arpent", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)

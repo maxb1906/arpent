@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étape 2 (découverte) terminée** — prochaine étape : 3 (scan de ports).
+> Statut : **étape 3 (scan de ports) terminée** — prochaine étape : 4 (sondes).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -213,7 +213,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 - [x] **Étape 0 — Socle** : installer Go sur la devbox, initialiser le dépôt GitHub public et le module, fichier `LICENSE`, README FR/EN, structure de dossiers, mécanisme de traduction (fr/en), `Makefile` de cross-compilation, GitHub Actions (tests + build), binaire « hello » qui tourne sur Windows.
 - [x] **Étape 1 — Réseau local** : détection des interfaces et sous-réseaux, lecture de la table ARP (Windows + Linux), requête ARP active via `SendARP` sous Windows.
 - [x] **Étape 2 — Découverte** : réveil des hôtes, DNS inverse, base OUI embarquée → liste d'appareils en CLI.
-- [ ] **Étape 3 — Scan de ports** : TCP connect concurrent, profils, limitation de débit.
+- [x] **Étape 3 — Scan de ports** : TCP connect concurrent, profils, limitation de débit.
 - [ ] **Étape 4 — Sondes** : bannières génériques, HTTP, TLS, SSH.
 - [ ] **Étape 5 — Stockage** : schéma SQLite, sites, audits, sauvegarde des résultats.
 - [ ] **Étape 6 — Interface web locale** : lancement du serveur + navigateur, liste des sites, lancement d'un audit avec progression, tableau d'inventaire, fiche appareil.
@@ -314,3 +314,6 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Découverte (`internal/discovery`, commande `arpent discover`) : par hôte, `SendARP` (Windows, sous-réseaux locaux uniquement), ping ICMP non privilégié (`IcmpSendEcho` sous Windows ; socket `udp4` de `golang.org/x/net/icmp` sous Linux/macOS, ignoré si `ping_group_range` l'interdit — c'est le cas sur la devbox), puis connexions TCP sur 12 ports courants (un refus de connexion prouve aussi que l'hôte existe), puis relecture de la table ARP et DNS inverse. Débit plafonné (300 sondes/s par défaut) par un petit paquet `internal/pace` (ajouté au § 7, utilisé aussi par le scan de ports).
 - **2026-11-25** — Dépendance ajoutée : `golang.org/x/net` v0.62.0 (pure Go, BSD) pour ICMP, et plus tard le parsing HTML. Règle suivie : ne prendre que des versions publiées depuis au moins deux semaines.
 - **2026-11-25** — Limite connue : sous Windows, une connexion TCP refusée met ≈ 1 s à être signalée (Windows réessaie le SYN) ; la découverte locale s'appuie donc surtout sur `SendARP`.
+- **2026-11-25** — Étape 3 terminée. `internal/portscan` + commande `arpent ports` : scan TCP connect avec trois plafonds réglables (500 connexions/s, 256 simultanées au total, 16 par hôte) ; les tâches sont distribuées port par port sur tous les hôtes pour étaler la charge. Le profil complet exige une confirmation (`--yes` pour l'automatiser). Par défaut, découverte préalable puis scan des seuls hôtes actifs (`--no-discover` pour tout scanner).
+- **2026-11-25** — Listes de ports établies à la main (IANA + usages courants PME/maison/IoT) plutôt que reprises de `nmap-services`, dont la licence (NPSL) n'est pas compatible avec une redistribution GPL simple : rapide = 94 ports, standard = 1–1024 + rapide + ≈ 370 ports courants au-delà (1395 ports au total, un peu plus que les « ≈ 1000 » du cadrage).
+- **2026-11-25** — UDP ciblé : charges utiles construites à la main (DNS `version.bind` TXT CH, NetBIOS NBSTAT `*`, SNMPv1 GetRequest `sysDescr.0` communauté `public`, SSDP M-SEARCH, mDNS `_services._dns-sd._udp.local`). La réponse brute est conservée pour les sondes de l'étape 10.
