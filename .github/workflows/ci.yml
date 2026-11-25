@@ -27,8 +27,8 @@ jobs:
         run: make fmt-check
       - run: go vet ./...
       - run: go test -race ./...
-      - name: PDF en un clic (navigateur du runner)
-        run: go test -run TestPDF -v ./internal/report/
+      - name: PDF et formulaires dans un vrai navigateur (runner)
+        run: go test -run 'TestPDF|TestRealBrowserForm' -v ./internal/report/ ./internal/web/
         env:
           ARPENT_REQUIRE_BROWSER: "1"
 

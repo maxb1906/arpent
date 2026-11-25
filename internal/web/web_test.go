@@ -133,6 +133,35 @@ func TestSecurity(t *testing.T) {
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("origine étrangère : %d", resp.StatusCode)
 	}
+	// En-têtes envoyés par de vrais navigateurs (Edge/Chrome envoient
+	// « Origin: null » sur un formulaire quand le référent est masqué).
+	for _, c := range []struct {
+		origin, site string
+		ok           bool
+	}{
+		{"null", "same-origin", true},
+		{"http://" + h.srv.Addr(), "same-origin", true},
+		{"http://" + h.srv.Addr(), "", true},
+		{"null", "", false},
+		{"http://evil.example", "cross-site", false},
+		{"null", "cross-site", false},
+		{"http://localhost.evil.example", "same-site", false},
+	} {
+		req, _ = http.NewRequest("POST", h.base+"/sites", strings.NewReader("name=Origine"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Origin", c.origin)
+		if c.site != "" {
+			req.Header.Set("Sec-Fetch-Site", c.site)
+		}
+		resp, err = h.client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if forbidden := resp.StatusCode == http.StatusForbidden; forbidden == c.ok {
+			t.Errorf("Origin=%q Sec-Fetch-Site=%q : %d", c.origin, c.site, resp.StatusCode)
+		}
+	}
 	if !strings.HasPrefix(h.srv.Addr(), "127.0.0.1:") {
 		t.Errorf("écoute hors boucle locale : %s", h.srv.Addr())
 	}

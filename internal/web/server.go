@@ -106,7 +106,9 @@ func (s *Server) guard(next http.Handler) http.Handler {
 		h := w.Header()
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("X-Content-Type-Options", "nosniff")
-		h.Set("Referrer-Policy", "no-referrer")
+		// same-origin et non no-referrer : avec no-referrer, Edge et Chrome
+		// envoient « Origin: null » sur les formulaires, refusés ci-dessous.
+		h.Set("Referrer-Policy", "same-origin")
 		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; form-action 'self'")
 		if r.URL.Path == "/login" {
 			next.ServeHTTP(w, r)
@@ -119,7 +121,7 @@ func (s *Server) guard(next http.Handler) http.Handler {
 		}
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			// Requêtes modifiantes : même origine obligatoire.
-			if o := r.Header.Get("Origin"); o != "" && !allowed[strings.TrimPrefix(strings.ToLower(o), "http://")] {
+			if !sameOrigin(r, allowed) {
 				http.Error(w, "forbidden origin", http.StatusForbidden)
 				return
 			}
@@ -162,4 +164,20 @@ func (s *Server) quit(w http.ResponseWriter, r *http.Request) {
 	if s.opt.OnQuit != nil {
 		go func() { time.Sleep(300 * time.Millisecond); s.opt.OnQuit() }()
 	}
+}
+
+// sameOrigin vérifie qu'une requête modifiante vient de l'interface elle-même :
+// Sec-Fetch-Site (navigateurs récents) si présent, sinon l'en-tête Origin.
+// Sans aucun des deux (client en ligne de commande), la requête est admise :
+// le cookie SameSite=Strict reste exigé.
+func sameOrigin(r *http.Request, allowed map[string]bool) bool {
+	switch r.Header.Get("Sec-Fetch-Site") {
+	case "same-origin", "none":
+		return true
+	case "":
+	default: // cross-site, same-site
+		return false
+	}
+	o := strings.ToLower(r.Header.Get("Origin"))
+	return o == "" || allowed[strings.TrimPrefix(o, "http://")]
 }
