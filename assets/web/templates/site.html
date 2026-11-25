@@ -22,6 +22,15 @@
     </label>
     <label class="check" id="confirm-full" hidden><input type="checkbox" name="confirm_full" value="1"> {{t "ports.full_confirm"}}</label>
     <label class="check"><input type="checkbox" name="no_udp" value="1"> {{t "flag.scan.no-udp"}}</label>
+    {{if .Advanced.Available}}
+    <div class="advanced">
+      <label class="check"><input type="checkbox" name="advanced" value="1" checked> <b>{{t "advanced.enable"}}</b> — {{t "advanced.what"}}</label>
+      <label class="inline-label">{{t "advanced.passive"}}
+        <select name="passive"><option value="0">{{t "advanced.passive_off"}}</option><option value="1">1 min</option><option value="2" selected>2 min</option><option value="5">5 min</option><option value="10">10 min</option></select></label>
+    </div>
+    {{else}}
+    <p class="hint">ⓘ {{t "advanced.unavailable"}} {{t .Advanced.Reason}}</p>
+    {{end}}
     <label>{{t "col.technician"}}<input name="technician" value="{{.Technician}}" maxlength="120"></label>
     {{if not .Authorized}}
     <div class="legal">

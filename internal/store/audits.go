@@ -151,7 +151,11 @@ func (s *Site) CompleteAudit(id int64, res *audit.Result, deviceType func(audit.
 			}
 		}
 	}
-	if _, err := tx.Exec(`UPDATE audit SET status = ?, finished_at = ? WHERE id = ?`, StatusDone, ts(res.Finished), id); err != nil {
+	mode := res.Mode
+	if mode == "" {
+		mode = "standard"
+	}
+	if _, err := tx.Exec(`UPDATE audit SET status = ?, finished_at = ?, mode = ? WHERE id = ?`, StatusDone, ts(res.Finished), mode, id); err != nil {
 		return err
 	}
 	return tx.Commit()

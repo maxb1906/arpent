@@ -12,6 +12,7 @@ import (
 	"github.com/maxb1906/arpent/internal/netinfo"
 	"github.com/maxb1906/arpent/internal/portscan"
 	"github.com/maxb1906/arpent/internal/probe"
+	"github.com/maxb1906/arpent/internal/rawnet"
 	"github.com/maxb1906/arpent/internal/store"
 )
 
@@ -26,6 +27,8 @@ func cmdScan(e *env, args []string) int {
 	site := fs.String("site", "", "")
 	technician := fs.String("technician", "", "")
 	authorized := fs.Bool("authorized", false, "")
+	adv := fs.Bool("advanced", false, "")
+	passive := fs.Duration("passive", 0, "")
 	if code, ok := e.parse(fs, args); !ok {
 		return code
 	}
@@ -50,7 +53,12 @@ func cmdScan(e *env, args []string) int {
 	if err != nil {
 		return e.fail(err)
 	}
-	opt := audit.Options{Targets: targets, Profile: profile, Rate: *rate, NoUDP: *noUDP, NoDiscovery: *noDiscover}
+	opt := audit.Options{Targets: targets, Profile: profile, Rate: *rate, NoUDP: *noUDP, NoDiscovery: *noDiscover, Advanced: *adv, Passive: *passive}
+	if *adv {
+		if st := rawnet.Check(); !st.Available {
+			fmt.Fprintln(e.stderr, e.T("advanced.unavailable")+" "+e.T(st.Reason))
+		}
+	}
 	if *site == "" {
 		res, err := runAudit(e, opt, func(o audit.Options) (*audit.Result, error) { return audit.Run(e.ctx, o) })
 		if err != nil {

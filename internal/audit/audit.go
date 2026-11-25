@@ -12,6 +12,7 @@ import (
 	"github.com/maxb1906/arpent/internal/fingerprint"
 	"github.com/maxb1906/arpent/internal/portscan"
 	"github.com/maxb1906/arpent/internal/probe"
+	"github.com/maxb1906/arpent/internal/rawnet"
 )
 
 // Phases d'un audit, dans l'ordre.
@@ -20,6 +21,7 @@ const (
 	PhasePorts     = "ports"
 	PhaseProbes    = "probes"
 	PhaseEnrich    = "enrich"
+	PhasePassive   = "passive"
 )
 
 // Options règle un audit.
@@ -30,6 +32,11 @@ type Options struct {
 	NoUDP       bool // pas de sondes UDP
 	NoDiscovery bool // scanner toutes les cibles sans découverte préalable
 	NoDNS       bool
+	// Advanced demande le mode avancé (Npcap + administrateur, ou root) :
+	// ARP brut, scan SYN du sous-réseau local, écoute passive pendant Passive.
+	// S'il est indisponible, l'audit se fait en mode standard.
+	Advanced bool
+	Passive  time.Duration
 	// Progress est appelé pendant chaque phase (peut être nil).
 	Progress func(phase string, done, total int)
 }
@@ -57,6 +64,7 @@ type Result struct {
 	Profile  portscan.Profile
 	Targets  int
 	Hosts    []Host
+	Mode     string // standard ou advanced (mode réellement utilisé)
 }
 
 // testPorts remplace la liste du profil dans les tests.
@@ -76,7 +84,20 @@ func Run(ctx context.Context, opt Options) (*Result, error) {
 		}
 		return func(d, t int) { opt.Progress(phase, d, t) }
 	}
-	res := &Result{Started: time.Now(), Profile: opt.Profile, Targets: len(opt.Targets)}
+	res := &Result{Started: time.Now(), Profile: opt.Profile, Targets: len(opt.Targets), Mode: ModeStandard}
+	var adv *advanced
+	if opt.Advanced {
+		if adv = openAdvanced(opt.Targets); adv != nil {
+			defer adv.close()
+			res.Mode = ModeAdvanced
+		}
+	}
+	// Écoute passive en parallèle de la découverte.
+	var passive chan []rawnet.Seen
+	if adv != nil && opt.Passive > 0 {
+		passive = make(chan []rawnet.Seen, 1)
+		go func() { passive <- adv.listen(ctx, opt.Passive) }()
+	}
 
 	// 1. Découverte.
 	var hosts []discovery.Host
@@ -90,6 +111,18 @@ func Run(ctx context.Context, opt Options) (*Result, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+	if adv != nil {
+		hosts = adv.arpSweep(ctx, opt.Targets, opt.Rate, hosts)
+	}
+	if passive != nil {
+		if opt.Progress != nil {
+			opt.Progress(PhasePassive, 0, 1)
+		}
+		hosts = mergeSeen(hosts, <-passive, opt.Targets)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	ips := make([]netip.Addr, len(hosts))
 	index := make(map[netip.Addr]int, len(hosts))
@@ -109,9 +142,28 @@ func Run(ctx context.Context, opt Options) (*Result, error) {
 	if !opt.NoUDP {
 		popt.UDP = portscan.DefaultUDPProbes
 	}
-	open, err := portscan.Scan(ctx, ips, popt)
-	if err != nil {
-		return nil, err
+	var open []portscan.Result
+	if adv != nil {
+		synOpen, connectIPs, synIPs := adv.synScan(ctx, hosts, ports, opt.Rate, progress(PhasePorts))
+		open = append(open, synOpen...)
+		// Hors sous-réseau local : scan « connect » ; UDP pour tous.
+		r1, err := portscan.Scan(ctx, connectIPs, popt)
+		if err != nil {
+			return nil, err
+		}
+		udpOnly := popt
+		udpOnly.Ports = []int{}
+		r2, err := portscan.Scan(ctx, synIPs, udpOnly)
+		if err != nil {
+			return nil, err
+		}
+		open = append(append(open, r1...), r2...)
+		portscan.SortResults(open)
+	} else {
+		var err error
+		if open, err = portscan.Scan(ctx, ips, popt); err != nil {
+			return nil, err
+		}
 	}
 
 	// 3. Services TCP.

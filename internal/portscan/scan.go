@@ -145,6 +145,12 @@ func Scan(ctx context.Context, hosts []netip.Addr, opt Options) ([]Result, error
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	SortResults(out)
+	return out, nil
+}
+
+// SortResults trie les résultats par hôte, protocole, port.
+func SortResults(out []Result) {
 	sort.Slice(out, func(a, b int) bool {
 		x, y := out[a], out[b]
 		if x.IP != y.IP {
@@ -155,7 +161,6 @@ func Scan(ctx context.Context, hosts []netip.Addr, opt Options) ([]Result, error
 		}
 		return x.Port < y.Port
 	})
-	return out, nil
 }
 
 func probeTCP(ctx context.Context, ip netip.Addr, port int, timeout time.Duration) *Result {

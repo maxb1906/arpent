@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étapes 0 à 10 et 12 à 15 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`).
+> Statut : **étapes 0 à 10 et 12 à 16 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`) ; étape 17 à préparer.
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -170,6 +170,7 @@ internal/netinfo/     # interfaces, sous-réseaux, table ARP par OS
 internal/discovery/   # réveil des hôtes, NetBIOS, mDNS, SSDP, DNS inverse
 internal/portscan/    # scan TCP/UDP concurrent avec limitation de débit
 internal/pace/        # limiteur de débit commun (sondes par seconde)
+internal/rawnet/      # mode avancé : trames brutes (Npcap / AF_PACKET), ARP brut, SYN, écoute passive
 internal/i18n/        # traductions fr/en (catalogues assets/i18n)
 internal/probe/       # bannières : http, tls, ssh, smb, snmp, générique
 internal/fingerprint/ # signatures, devinette du type d'appareil, base OUI
@@ -232,7 +233,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 - [x] **Étape 13 — Rapports à la marque** : profil émetteur, logo/couleurs, modèles surchargeables, types de rapport, recommandations éditables.
 - [x] **Étape 14 — Comparaison libre et historique** : diff entre deux audits au choix, frise par appareil, graphique d'évolution.
 - [x] **Étape 15 — Multi-sites** : portefeuille, rappels d'audit, export/import `.arpent`, recherche transverse.
-- [ ] **Étape 16 — Mode avancé Npcap** : détection Npcap + admin, ARP brut, scan SYN, écoute passive.
+- [x] **Étape 16 — Mode avancé Npcap** : détection Npcap + admin, ARP brut, scan SYN, écoute passive.
 - [ ] **Étape 17 — Signature de code** : candidature SignPath Foundation, intégration dans GitHub Actions, `CODE_SIGNING_POLICY.md`, première version signée.
 
 Chaque étape se termine par un binaire Windows testable.
@@ -356,3 +357,6 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Étape 15 terminée. Tableau de bord du portefeuille (accueil) : par site, nombre d'audits, date du dernier, appareils, points critiques/attention ouverts, tendance par rapport à l'audit précédent, prochain audit ; sites en retard en tête et surlignés. Rappel d'audit : fréquence par site (migration 4 : `site.reminder_days`, vide = valeur des réglages, 0 = aucun) ; `arpent sites` affiche aussi l'échéance.
 - **2026-11-25** — Export/import `.arpent` : zip avec `manifest.json`, copie cohérente de la base (`VACUUM INTO`) et rapports. Import : création du site, ou **fusion** si le site existe — chaque audit a désormais un identifiant stable (`audit.uid`, migration 4) ; les audits absents sont copiés via `ATTACH DATABASE` avec correspondance des appareils par identité (annotations complétées, « connu » conservé), observations, services, points d'attention et recommandations ; les changements sont ensuite recalculés dans l'ordre chronologique (`diff.RecomputeAll`). `PreviousAudit` suit désormais la date et non l'identifiant. Protections : manifeste obligatoire, taille maximale, noms de rapports sans chemin (zip slip testé), base de l'archive ouverte et migrée avant fusion. UI : export par site, import par fichier ; CLI : `arpent export|import`.
 - **2026-11-25** — Recherche transverse (`store.Search`, champ dans l'en-tête de l'UI, `arpent search …`) sur le dernier audit de chaque site : IP, MAC, noms, fabricant, annotations, type, services, produits/versions, titres et serveurs web, certificats, SMB (« smbv1 »), SSH, bannières, identifiants de règles. Comparaison tolérante (casse, espaces et ponctuation ignorés : « SMB v1 » = « SMBv1 », `00-11-22` = `00:11:22`).
+- **2026-11-25** — Étape 16 terminée (code et tests ; à valider sur le LAN avec Npcap). `internal/rawnet` (ajouté au § 7) : trames Ethernet brutes via `github.com/google/gopacket` v1.1.19 (couches pures Go). Pilotes : **Windows** = Npcap, `wpcap.dll` chargée dynamiquement par `gopacket/pcap` (sans CGO, recherche dans `System32\Npcap`), interface retrouvée par son IPv4, exige Npcap **et** l'élévation administrateur (`IsUserAnAdmin`) ; **Linux** = socket `AF_PACKET` en pur Go (root ou `CAP_NET_RAW`) ; macOS : non pris en charge (BPF non implémenté). Npcap n'est pas embarqué (licence) : la raison d'indisponibilité est affichée avec le lien npcap.com. Note : `gopacket/pcap` n'existe que pour windows/386 et amd64 — seule windows/amd64 est une cible.
+- **2026-11-25** — Fonctions : ARP brut sur le sous-réseau local (appareils silencieux), scan SYN (port source et numéro de séquence aléatoires, réponses filtrées par port + ack = seq+1, SYN-ACK = ouvert ; le système répond lui-même RST, aucune connexion n'est établie ; débit limité) pour les hôtes locaux dont la MAC est connue, « connect » pour les autres, UDP inchangé ; écoute passive (ARP, DHCP option 12/60, mDNS A) en parallèle de la découverte pendant 1 à 10 min, nos propres trames ignorées. Si le mode avancé est demandé mais indisponible, l'audit se fait en mode standard sans erreur ; le mode réellement utilisé est enregistré (`audit.mode`), affiché dans l'interface et dans le rapport. UI : option et durée d'écoute sur le formulaire d'audit quand le mode est disponible, sinon la raison ; CLI : `scan --advanced [--passive 2m]`, `arpent advanced`.
+- **2026-11-25** — Tests : logique ARP/SYN/passive validée sur un réseau simulé en mémoire (faux pilote qui répond aux ARP et aux SYN, trames DHCP et ARP gratuites) ; les pilotes réels n'ont pas pu être exercés (pas de root accordé sur la devbox, pas de Npcap en CI) → à vérifier pendant le test homelab (`docs/TEST-HOMELAB.md`).

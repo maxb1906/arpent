@@ -5,6 +5,7 @@
 <h1>{{.Site.Name}} <span class="muted">— {{t "web.audit_of" "date" (datetime .Audit.Started)}}</span></h1>
 <p class="muted">
   <span class="status {{.Audit.Status}}">{{t (print "status." .Audit.Status)}}</span>
+  · <span class="tag{{if eq .Audit.Mode "advanced"}} ok{{end}}">{{t (print "report.mode." .Audit.Mode)}}</span>
   · {{t "col.profile"}} : {{t (print "profile." .Audit.Profile)}} · <span class="mono">{{.Audit.Ranges}}</span>
   · {{t "web.duration"}} : {{duration .Audit.Started .Audit.Finished}}{{if .Audit.Technician}} · {{.Audit.Technician}}{{end}}
 </p>

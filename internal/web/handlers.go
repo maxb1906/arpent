@@ -23,6 +23,7 @@ import (
 	"github.com/maxb1906/arpent/internal/i18n"
 	"github.com/maxb1906/arpent/internal/netinfo"
 	"github.com/maxb1906/arpent/internal/portscan"
+	"github.com/maxb1906/arpent/internal/rawnet"
 	"github.com/maxb1906/arpent/internal/report"
 	"github.com/maxb1906/arpent/internal/store"
 )
@@ -190,7 +191,7 @@ func (s *Server) site(w http.ResponseWriter, r *http.Request) {
 	charts, table := s.evolution(site, audits, s.lang(r))
 	summary, _ := site.Summary()
 	s.render(w, r, "site", map[string]any{
-		"Charts": charts, "Evolution": table, "Summary": summary.WithDefaultReminder(cfg.ReminderDays), "DefaultReminder": cfg.ReminderDays,
+		"Advanced": rawnet.Check(), "Charts": charts, "Evolution": table, "Summary": summary.WithDefaultReminder(cfg.ReminderDays), "DefaultReminder": cfg.ReminderDays,
 		"Site": info, "Audits": audits, "Authorized": authorized, "AuthorizedAt": authAt,
 		"Subnets": subnets, "Ranges": strings.Join(ranges, ", "), "Profiles": portscan.Profiles, "DefaultProfile": cfg.DefaultProfile,
 		"Technician": technician, "Error": r.URL.Query().Get("error"),
@@ -275,8 +276,10 @@ func (s *Server) startAudit(w http.ResponseWriter, r *http.Request) {
 		defer site.Close()
 		defer cancel()
 		cfg, _ := config.Load(s.opt.DataDir)
+		passive, _ := strconv.Atoi(r.FormValue("passive"))
 		_, err := engine.Run(ctx, site, id, audit.Options{
 			Targets: targets, Profile: profile, NoUDP: r.FormValue("no_udp") == "1", Rate: cfg.Rate, Progress: j.progress,
+			Advanced: r.FormValue("advanced") == "1", Passive: time.Duration(min(max(passive, 0), 30)) * time.Minute,
 		})
 		switch {
 		case err == nil:

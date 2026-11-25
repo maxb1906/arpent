@@ -31,5 +31,10 @@
 - [ ] Changements détectés : nouvel appareil, disparu, port ouvert ; bouton « valider » d'un nouvel appareil.
 - [ ] CLI : `arpent.exe scan --site Homelab --profile quick`, `arpent.exe show --site Homelab`.
 
+## Mode avancé (Npcap)
+- [ ] Sans Npcap : le formulaire d'audit indique « Npcap n'est pas installé » ; `arpent.exe advanced` idem.
+- [ ] Installer Npcap (npcap.com), relancer Arpent **en administrateur** : l'option « Mode avancé » apparaît.
+- [ ] Audit avancé avec 2 min d'écoute passive : appareils supplémentaires (méthodes `arp-raw`, `passive`), noms DHCP, mêmes ports ouverts qu'en mode standard, durée comparée ; mode « avancé » mentionné dans le rapport.
+
 ## Bilan
 - [ ] Reporter les problèmes en issues GitHub, puis cocher l'étape 11 et taguer `v1.0.0` (le workflow Release publie les binaires).
