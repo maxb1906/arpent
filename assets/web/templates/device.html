@@ -14,6 +14,19 @@
 </dl>
 
 <section class="card">
+  <h2>{{t "web.annotations"}}</h2>
+  <form method="post" action="/sites/{{.Site.Slug}}/devices/{{.Device.ID}}" class="grid-form">
+    <input type="hidden" name="back" value="{{$.Path}}">
+    <label>{{t "web.label"}}<input name="label" value="{{.Device.Label}}" maxlength="120"></label>
+    <label>{{t "web.location"}}<input name="location" value="{{.Device.Location}}" maxlength="120"></label>
+    <label>{{t "web.owner"}}<input name="owner" value="{{.Device.Owner}}" maxlength="120"></label>
+    <label class="span2">{{t "web.notes"}}<textarea name="notes" rows="2">{{.Device.Notes}}</textarea></label>
+    <label class="check"><input type="checkbox" name="known" value="1"{{if .Device.Known}} checked{{end}}> {{t "web.known_hint"}}</label>
+    <div><button class="primary">{{t "web.save"}}</button></div>
+  </form>
+</section>
+
+<section class="card">
   <h2>{{t "web.findings"}}</h2>
   {{template "findings" (dict "Findings" .Findings "Slug" .Site.Slug "Link" false)}}
 </section>

@@ -1,0 +1,18 @@
+{{define "changes"}}{{/* . = dict "Changes" … "Slug" … "Back" … */}}
+{{if .Changes}}
+<table class="list changes">
+  <tbody>
+  {{range .Changes}}
+  <tr class="ch {{.Kind}}">
+    <td class="ico">{{t (print "change.icon." .Kind)}}</td>
+    <td><b>{{t (print "change." .Kind)}}</b>{{if .Field}} <span class="muted">({{t (print "change.field." .Field)}})</span>{{end}}</td>
+    <td>{{if .DeviceID}}<a href="/sites/{{$.Slug}}/devices/{{.DeviceID}}">{{if .Label}}{{.Label}} · {{end}}{{.IP}}</a>{{end}}{{if .Port}} <span class="port">{{.Port}}/{{.Proto}}</span>{{end}}</td>
+    <td class="small">{{if .Before}}<span class="mono dim">{{.Before}}</span>{{end}}{{if and .Before .After}} → {{end}}{{if .After}}<span class="mono">{{.After}}</span>{{end}}</td>
+    <td>{{if eq .Kind "new_device"}}{{if .Known}}<span class="tag ok">{{t "web.known"}}</span>{{else}}
+      <form method="post" action="/sites/{{$.Slug}}/devices/{{.DeviceID}}/known" class="inline"><input type="hidden" name="back" value="{{$.Back}}"><button class="small">✓ {{t "web.mark_known"}}</button></form>{{end}}{{end}}</td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+{{else}}<p class="muted">{{t "web.no_change"}}</p>{{end}}
+{{end}}

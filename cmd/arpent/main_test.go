@@ -111,6 +111,15 @@ func TestScanSaveAndShow(t *testing.T) {
 	if code, out = runCLI(t, "--lang", "en", "--data", data, "show", "--site", "Café Test"); code != 0 || !strings.Contains(out, "Audit #2") || !strings.Contains(out, "127.0.0.1") {
 		t.Errorf("show : %s", out)
 	}
+	if code, out = runCLI(t, "--lang", "en", "--data", data, "annotate", "--site", "Café Test", "--ip", "127.0.0.1", "--label", "Devbox", "--known"); code != 0 {
+		t.Errorf("annotate : %d %s", code, out)
+	}
+	if code, out = runCLI(t, "--lang", "en", "--data", data, "show", "--site", "Café Test"); !strings.Contains(out, "Devbox") {
+		t.Errorf("annotation absente : %s", out)
+	}
+	if code, _ = runCLI(t, "--data", data, "annotate", "--site", "Café Test", "--ip", "10.9.9.9"); code != 1 {
+		t.Errorf("appareil inconnu : code %d", code)
+	}
 	if code, _ = runCLI(t, "--data", data, "show", "--site", "absent"); code != 1 {
 		t.Errorf("site absent : code %d", code)
 	}

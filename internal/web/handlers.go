@@ -35,6 +35,8 @@ func (s *Server) routes() {
 	m.HandleFunc("POST /sites/{slug}/audits/{id}/cancel", s.cancelAudit)
 	m.HandleFunc("GET /api/sites/{slug}/audits/{id}/progress", s.progress)
 	m.HandleFunc("GET /sites/{slug}/devices/{id}", s.devicePage)
+	m.HandleFunc("POST /sites/{slug}/devices/{id}", s.annotate)
+	m.HandleFunc("POST /sites/{slug}/devices/{id}/known", s.setKnown)
 	s.mux = m
 }
 
@@ -313,9 +315,24 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 		perDevice[f.DeviceID] = fs
 	}
 	data["DeviceFindings"] = perDevice
+	changes, err := site.Changes(id)
+	if err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	data["Changes"] = changes
+	isNew := map[int64]bool{}
+	for _, c := range changes {
+		if c.Kind == store.ChangeNewDevice {
+			isNew[c.DeviceID] = true
+		}
+	}
+	data["IsNew"] = isNew
 	data["Types"] = sortedCounts(types)
 	if prev, _ := site.PreviousAudit(id); prev != 0 {
-		data["Previous"] = prev
+		if pa, err := site.GetAudit(prev); err == nil {
+			data["Previous"] = pa
+		}
 	}
 	s.render(w, r, "audit", data)
 }
@@ -395,4 +412,55 @@ func (s *Server) devicePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.render(w, r, "device", map[string]any{"Site": info, "Device": dev, "Obs": cur, "History": rows, "Audit": audits[cur.AuditID], "Findings": findings})
+}
+
+// back renvoie vers la page indiquée par le champ « back » (chemin local).
+func back(w http.ResponseWriter, r *http.Request, fallback string) {
+	b := r.FormValue("back")
+	if !strings.HasPrefix(b, "/") || strings.HasPrefix(b, "//") {
+		b = fallback
+	}
+	http.Redirect(w, r, b, http.StatusSeeOther)
+}
+
+func (s *Server) annotate(w http.ResponseWriter, r *http.Request) {
+	site, err := s.openSite(r)
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	defer site.Close()
+	id, err := pathID(r, "id")
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	if err := site.Annotate(id, r.FormValue("label"), r.FormValue("location"), r.FormValue("owner"), r.FormValue("notes")); err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	if err := site.SetKnown(id, r.FormValue("known") == "1"); err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	back(w, r, "/sites/"+site.Slug+"/devices/"+itoa64(id))
+}
+
+func (s *Server) setKnown(w http.ResponseWriter, r *http.Request) {
+	site, err := s.openSite(r)
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	defer site.Close()
+	id, err := pathID(r, "id")
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	if err := site.SetKnown(id, r.FormValue("known") != "0"); err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	back(w, r, "/sites/"+site.Slug+"/devices/"+itoa64(id))
 }

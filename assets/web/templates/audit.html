@@ -19,6 +19,13 @@
     <div class="chips">{{range .TopPorts}}<span class="chip mono">{{.Key}}{{if .Name}} {{.Name}}{{end}} <b>{{.Count}}</b></span>{{end}}</div></div>
 </div>
 
+{{if .Previous}}
+<section class="card">
+  <h2>{{t "web.changes_since" "date" (datetime .Previous.Started)}}</h2>
+  {{template "changes" (dict "Changes" .Changes "Slug" .Site.Slug "Back" $.Path)}}
+</section>
+{{end}}
+
 <section class="card">
   <h2>{{t "web.findings"}}
     <span class="level critical">{{index .FindingCounts "critical"}}</span>
@@ -35,7 +42,7 @@
     {{range .Observations}}
     <tr>
       <td class="mono"><a href="/sites/{{$.Data.Site.Slug}}/devices/{{.Device.ID}}?audit={{.AuditID}}">{{.IP}}</a></td>
-      <td>{{if .Device.Label}}<b>{{.Device.Label}}</b><br>{{end}}<span class="small">{{join .Names ", "}}</span>{{if .Device.Known}} <span class="tag ok" title="{{t "web.known"}}">✓</span>{{end}}</td>
+      <td>{{if .Device.Label}}<b>{{.Device.Label}}</b><br>{{end}}<span class="small">{{join .Names ", "}}</span>{{if .Device.Known}} <span class="tag ok" title="{{t "web.known"}}">✓</span>{{end}}{{if index $.Data.IsNew .Device.ID}} <span class="tag warn">{{t "web.new"}}</span>{{end}}</td>
       <td class="mono small">{{.MAC}}</td>
       <td class="small">{{if .RandomMAC}}<span class="dim">{{t "discover.random_mac"}}</span>{{else}}{{.Vendor}}{{end}}</td>
       <td class="small">{{if .DeviceType}}{{t (print "type." .DeviceType)}}{{end}}</td>

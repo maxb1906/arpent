@@ -63,7 +63,7 @@ func (h *harness) post(path string, form url.Values) (int, string, string) {
 	return resp.StatusCode, resp.Request.URL.Path, string(b)
 }
 
-var rawKey = regexp.MustCompile(`\b(web|cmd|flag|col|phase|status|profile|legal|type|scan)\.[a-z_.\-]+\b`)
+var rawKey = regexp.MustCompile(`\b(web|cmd|flag|col|phase|status|profile|legal|type|scan|change|rule|level)\.[a-z_.\-]+\b`)
 
 func noRawKeys(t *testing.T, page, body string) {
 	t.Helper()
@@ -172,6 +172,13 @@ func TestAuditFlow(t *testing.T) {
 		t.Errorf("fiche appareil : %d", code)
 	}
 	noRawKeys(t, "appareil", body)
+
+	// Annotation et validation de l'appareil.
+	devPath := strings.SplitN(m, "?", 2)[0]
+	_, _, body = h.post(devPath, url.Values{"label": {"Serveur devbox"}, "known": {"1"}, "back": {devPath}})
+	if !strings.Contains(body, "Serveur devbox") || !strings.Contains(body, `name="known" value="1" checked`) {
+		t.Error("annotation non enregistrée")
+	}
 
 	// Second audit : plus de confirmation demandée ; puis en anglais.
 	h.post("/lang", url.Values{"lang": {"en"}, "back": {"/sites/pharmacie-test"}})

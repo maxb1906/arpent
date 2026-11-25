@@ -118,6 +118,9 @@ func cmdShow(e *env, args []string) int {
 		return e.fail(err)
 	}
 	printFindings(e, e.stdout, findings)
+	if cs, err := s.Changes(*id); err == nil {
+		printChanges(e, e.stdout, cs)
+	}
 	return 0
 }
 
