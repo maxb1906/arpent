@@ -22,13 +22,20 @@ Scanner un réseau sans autorisation est **illégal**, en Belgique comme ailleur
 - Historique par site et détection des changements entre deux audits.
 - Rapport HTML autonome, PDF, exports CSV/JSON — en français ou en anglais.
 
-## Utilisation (version « hello » actuelle)
+## Utilisation
+
+**Double-cliquez sur `arpent.exe`** : Arpent démarre une interface locale sur `127.0.0.1` et ouvre votre navigateur. Créez un site (le client), lancez un audit, consultez l'inventaire. Les données sont rangées dans `arpent-data/`, à côté de l'exécutable : tout reste sur la clé USB. Fermez la fenêtre noire pour quitter.
+
+En ligne de commande :
 
 ```
-arpent [--lang fr|en] [hello|version|help]
+arpent scan --site "Pharmacie X" --range 192.168.1.0/24 --profile standard --technician "Nom"
+arpent sites | arpent audits --site "Pharmacie X" | arpent show --site "Pharmacie X"
+arpent discover | arpent ports | arpent interfaces | arpent arp --active
+arpent help
 ```
 
-La langue est détectée automatiquement (variable `ARPENT_LANG`, puis `LANG`, puis la langue de Windows) ; `--lang` la force.
+Options globales : `--lang fr|en` (sinon langue du système) et `--data <dossier>` (sinon `arpent-data/` à côté de l'exe ou variable `ARPENT_DATA`).
 
 ## Compilation
 

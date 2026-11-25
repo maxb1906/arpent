@@ -93,12 +93,12 @@ func loadPages() (*pages, error) {
 	p := &pages{sets: map[string]*template.Template{}}
 	var partials []string
 	for _, f := range files {
-		if strings.HasPrefix(f, "_") {
+		if strings.HasPrefix(f, "part_") {
 			partials = append(partials, f)
 		}
 	}
 	for _, f := range files {
-		if strings.HasPrefix(f, "_") || f == "layout.html" {
+		if strings.HasPrefix(f, "part_") || f == "layout.html" {
 			continue
 		}
 		name := strings.TrimSuffix(path.Base(f), ".html")

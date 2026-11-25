@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étape 5 (stockage) terminée** — prochaine étape : 6 (interface web locale).
+> Statut : **étape 6 (interface web locale) terminée** — prochaine étape : 7 (points d'attention).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -174,6 +174,7 @@ internal/i18n/        # traductions fr/en (catalogues assets/i18n)
 internal/probe/       # bannières : http, tls, ssh, smb, snmp, générique
 internal/fingerprint/ # signatures, devinette du type d'appareil, base OUI
 internal/audit/       # orchestration d'un audit : découverte → ports → sondes
+internal/engine/      # audit enregistré de bout en bout + analyses (règles, diff)
 internal/rules/       # moteur de points d'attention
 internal/diff/        # comparaison entre deux audits
 internal/store/       # SQLite (schéma, migrations, requêtes)
@@ -218,7 +219,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 - [x] **Étape 3 — Scan de ports** : TCP connect concurrent, profils, limitation de débit.
 - [x] **Étape 4 — Sondes** : bannières génériques, HTTP, TLS, SSH.
 - [x] **Étape 5 — Stockage** : schéma SQLite, sites, audits, sauvegarde des résultats.
-- [ ] **Étape 6 — Interface web locale** : lancement du serveur + navigateur, liste des sites, lancement d'un audit avec progression, tableau d'inventaire, fiche appareil.
+- [x] **Étape 6 — Interface web locale** : lancement du serveur + navigateur, liste des sites, lancement d'un audit avec progression, tableau d'inventaire, fiche appareil.
 - [ ] **Étape 7 — Points d'attention** : moteur de règles + règles de départ (§ 5.4).
 - [ ] **Étape 8 — Diff** : comparaison avec l'audit précédent, liste « connus / validés », annotations.
 - [ ] **Étape 9 — Rapport** : HTML autonome, mise en page d'impression PDF, exports CSV/JSON.
@@ -324,3 +325,8 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Étape 5 terminée. `internal/store` : une base `arpent-data/sites/<slug>/site.db` par site (slug sans accents via `golang.org/x/text/unicode/norm`), schéma du § 6 versionné par `PRAGMA user_version` (migrations uniquement additives), WAL + clés étrangères. Identité d'un appareil : `mac:<mac>`, à défaut `ip:<ip>|<nom>`. Les points d'attention seront stockés sous forme `règle + paramètres JSON` (pas de texte figé) pour pouvoir produire le rapport dans n'importe quelle langue.
 - **2026-11-25** — Dossier de données (`internal/config`) : `--data`, sinon `ARPENT_DATA`, sinon `arpent-data/` à côté de l'exe (dossier courant pour `go run`/tests) ; il doit être inscriptible. CLI : `scan --site … [--technician] [--authorized]`, `sites`, `audits --site`, `show --site [--audit N]`. Le premier audit d'un site exige la confirmation « autorisé à auditer », horodatée dans `audit.authorized_at` (§ 5.8, en avance sur l'étape 11).
 - **2026-11-25** — Dépendances ajoutées : `modernc.org/sqlite` v1.62.0 (la v1.63.0 avait moins de deux semaines), `golang.org/x/text` v0.44.0. L'exe Windows passe de ≈ 3 Mo à ≈ 12 Mo à cause du moteur SQLite transpilé.
+- **2026-11-25** — Étape 6 terminée. `internal/web` + commande `arpent ui`, lancée par défaut sans argument (double-clic) : écoute `127.0.0.1:<port libre>`, ouvre le navigateur (`rundll32 url.dll` sous Windows, `open`, `xdg-open`). Sécurité : jeton aléatoire passé une fois dans l'URL puis cookie `HttpOnly; SameSite=Strict`, en-tête `Host` limité à 127.0.0.1/localhost:port (contre le DNS rebinding), `Origin` vérifié sur les POST, CSP stricte, aucune ressource externe. Pages rendues côté serveur (`html/template`, un jeu de modèles cloné par requête pour y lier la langue), CSS et JS maison (~150 lignes, sans htmx finalement : inutile pour ce volume), thème clair/sombre, feuille d'impression.
+- **2026-11-25** — Écrans : liste des sites + création ; site (fiche, historique des audits, formulaire d'audit pré-rempli avec les sous-réseaux proposés ou les plages du dernier audit, confirmation d'autorisation au premier audit, confirmation du profil complet) ; progression par phase (interrogation toutes les 0,7 s, arrêt possible) ; inventaire (statistiques, filtre, tri) ; fiche appareil (services HTTP/TLS/SSH détaillés, bannière brute, historique). Un seul audit à la fois. Bouton « Quitter ».
+- **2026-11-25** — Nouveau paquet `internal/engine` : audit enregistré de bout en bout, avec des « post-traitements » enregistrables (règles à l'étape 7, diff à l'étape 8) — la CLI et l'UI partagent ce chemin. Bug corrigé grâce à `-race` en CI : la progression est appelée depuis plusieurs goroutines ; `make test` utilise désormais `-race`.
+- **2026-11-25** — Piège noté : `go:embed` ignore les fichiers commençant par `_` ou `.` ; les modèles partiels sont préfixés `part_`.
+- **2026-11-25** — Pas de navigateur sur la devbox (installation de Chromium refusée par le mode automatique) : le rendu est vérifié par des tests HTTP de bout en bout (création de site → audit de 127.0.0.1 → inventaire → fiche, fr et en, aucune clé de traduction brute), pas encore visuellement.

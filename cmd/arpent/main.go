@@ -74,10 +74,11 @@ type command struct {
 var commands = map[string]command{}
 
 // order fixe l'ordre d'affichage des commandes dans l'aide.
-var order = []string{"hello", "interfaces", "arp", "scan", "sites", "audits", "show", "discover", "ports", "version", "help"}
+var order = []string{"ui", "scan", "sites", "audits", "show", "discover", "ports", "interfaces", "arp", "hello", "version", "help"}
 
 func init() {
 	commands["hello"] = command{run: cmdHello}
+	commands["ui"] = command{run: cmdUI}
 	commands["version"] = command{run: func(e *env, _ []string) int { fmt.Fprintln(e.stdout, version); return 0 }}
 	commands["help"] = command{run: func(e *env, _ []string) int { usage(e, e.stdout); return 0 }}
 	commands["interfaces"] = command{run: cmdInterfaces}
@@ -138,7 +139,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	name, rest := "hello", []string(nil)
+	// Sans commande (double-clic sur l'exe) : interface web.
+	name, rest := "ui", []string(nil)
 	if fs.NArg() > 0 {
 		name, rest = fs.Arg(0), fs.Args()[1:]
 	}

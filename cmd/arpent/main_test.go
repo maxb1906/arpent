@@ -20,7 +20,7 @@ func TestRun(t *testing.T) {
 		code     int
 		contains string
 	}{
-		{[]string{"--lang", "fr"}, 0, "Bonjour depuis Arpent"},
+		{[]string{"--lang", "fr", "hello"}, 0, "Bonjour depuis Arpent"},
 		{[]string{"--lang", "en", "hello"}, 0, "Hello from Arpent"},
 		{[]string{"version"}, 0, "dev"},
 		{[]string{"--lang", "en", "nope"}, 2, "Unknown command: nope"},
