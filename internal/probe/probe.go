@@ -63,6 +63,13 @@ func TCP(ctx context.Context, ip netip.Addr, port int, opt Options) Service {
 	opt.defaults()
 	addr := netip.AddrPortFrom(ip, uint16(port)).String()
 
+	// SMB : protocole binaire, sonde dédiée.
+	if port == 445 {
+		if info, err := SMB(ctx, addr, opt.Timeout); err == nil {
+			return Service{Name: "smb", SMB: info}
+		}
+	}
+
 	// 1. Bannière spontanée.
 	if raw := readBanner(ctx, addr, opt); len(raw) > 0 {
 		return classifyBanner(raw)

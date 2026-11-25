@@ -1,0 +1,103 @@
+# Signatures d'appareils d'Arpent : chaque signature ajoute « weight » points
+# au type indiqué quand TOUTES ses conditions sont vraies. Le type qui
+# totalise le plus de points (au moins 3) est retenu ; « product » donne un
+# libellé lisible (premier trouvé parmi les signatures du type retenu).
+#
+# Conditions (expressions régulières insensibles à la casse) :
+#   vendor      fabricant (base OUI)          name      noms (DNS, NetBIOS, mDNS)
+#   http_title  titre d'une page web           http_server  en-tête Server / X-Powered-By
+#   ssdp        description UPnP (type, fabricant, modèle, serveur)
+#   mdns        types de services mDNS        snmp      sysDescr
+#   banner      bannière d'un service         product_re  produit identifié (ex. OpenSSH)
+#   ports       ports tous ouverts (« 9100/tcp ») ; any_ports : au moins un
+#   netbios     true : répond en NetBIOS       random_mac true : MAC aléatoire
+
+# --- Imprimantes
+- { type: printer, weight: 5, ports: ["9100/tcp"] }
+- { type: printer, weight: 3, any_ports: ["515/tcp", "631/tcp"] }
+- { type: printer, weight: 4, mdns: "_ipp\\.|_pdl-datastream|_printer\\." }
+- { type: printer, weight: 3, vendor: "brother|lexmark|kyocera|ricoh|xerox|canon|epson|konica|oki electric|zebra" }
+- { type: printer, weight: 2, vendor: "hewlett|hp inc" }
+- { type: printer, weight: 4, http_title: "printer|imprimante|laserjet|officejet|deskjet|easyinfo|web image monitor|command ?center|syncthru|embedded web server" }
+- { type: printer, weight: 4, snmp: "printer|laserjet|jetdirect|kyocera|ricoh|brother nc" }
+- { type: printer, weight: 4, ssdp: "printer" }
+
+# --- NAS
+- { type: nas, weight: 6, vendor: "qnap", product: "QNAP NAS" }
+- { type: nas, weight: 6, vendor: "synology", product: "Synology NAS" }
+- { type: nas, weight: 4, vendor: "western digital|buffalo|asustor|terramaster|netgear.*readynas" }
+- { type: nas, weight: 5, http_title: "qts|qnap|synology|diskstation|dsm|truenas|freenas|openmediavault|unraid|my cloud", product: "NAS" }
+- { type: nas, weight: 3, mdns: "_afpovertcp|_smb\\._tcp|_adisk" }
+- { type: nas, weight: 2, ports: ["445/tcp", "548/tcp"] }
+
+# --- Hyperviseurs et serveurs
+- { type: hypervisor, weight: 7, ports: ["8006/tcp"], http_title: "proxmox", product: "Proxmox VE" }
+- { type: hypervisor, weight: 6, http_title: "proxmox", product: "Proxmox VE" }
+- { type: hypervisor, weight: 6, http_title: "vmware esxi|vsphere", product: "VMware ESXi" }
+- { type: hypervisor, weight: 3, ports: ["902/tcp"] }
+- { type: server, weight: 3, any_ports: ["3306/tcp", "5432/tcp", "1433/tcp", "27017/tcp", "6379/tcp"] }
+- { type: server, weight: 2, ports: ["22/tcp", "80/tcp"] }
+- { type: server, weight: 4, ports: ["53/tcp", "88/tcp", "389/tcp"], product: "Contrôleur de domaine / Domain controller" }
+- { type: server, weight: 3, vendor: "supermicro|dell|lenovo.*server|hewlett packard enterprise|fujitsu technology" }
+- { type: server, weight: 2, product_re: "OpenSSH|nginx|Apache|Microsoft-IIS" }
+
+# --- Routeurs, pare-feu, switchs, bornes
+- { type: router, weight: 4, ssdp: "internetgatewaydevice|wanconnection" }
+- { type: router, weight: 5, vendor: "mikrotik|ubiquiti|routerboard", product: "MikroTik / Ubiquiti" }
+- { type: router, weight: 4, vendor: "tp-?link|netgear|d-?link|zyxel|draytek|asustek|avm|sagemcom|technicolor|freebox|huawei|arcadyan|sercomm|zte" }
+- { type: router, weight: 5, http_title: "router|routeur|gateway|passerelle|freebox|livebox|bbox|fritz!box|proximus|b-box|internet box|modem|tp-link|routeros|unifi|edgeos|openwrt|luci|draytek|vigor" }
+- { type: router, weight: 3, any_ports: ["53/tcp", "53/udp"], http_title: "." }
+- { type: router, weight: 3, ports: ["8291/tcp"], product: "MikroTik RouterOS" }
+- { type: router, weight: 2, ports: ["7547/tcp"] }
+- { type: firewall, weight: 7, http_title: "pfsense|opnsense|fortigate|fortinet|sophos|watchguard|sonicwall|stormshield|untangle", product: "Pare-feu / Firewall" }
+- { type: firewall, weight: 5, vendor: "fortinet|sonicwall|watchguard|netgate|sophos|palo alto|stormshield" }
+- { type: switch, weight: 5, http_title: "switch|smart managed|procurve|catalyst|netgear prosafe|gs1|gs3|tl-sg|dgs-|unifi switch" }
+- { type: switch, weight: 4, snmp: "switch|procurve|catalyst|prosafe|jetstream" }
+- { type: switch, weight: 2, vendor: "cisco|aruba|hewlett packard enterprise|allied telesis|netgear" }
+- { type: access_point, weight: 5, http_title: "access point|point d'accès|unifi|omada|eap\\d|aironet|ruckus|aruba instant" }
+- { type: access_point, weight: 3, vendor: "ruckus|aerohive|cambium|engenius" }
+
+# --- Caméras et enregistreurs
+- { type: camera, weight: 5, vendor: "hikvision|dahua|axis communications|hanwha|vivotek|reolink|amcrest|foscam|uniview|mobotix|tp-link.*tapo" }
+- { type: camera, weight: 4, any_ports: ["554/tcp", "8554/tcp"] }
+- { type: camera, weight: 5, http_title: "camera|caméra|webcam|ipcam|network video|hikvision|dahua|axis|reolink|netsurveillance|web service" }
+- { type: camera, weight: 4, ports: ["34567/tcp"] }
+- { type: camera, weight: 4, ports: ["37777/tcp"] }
+- { type: nvr, weight: 5, http_title: "nvr|dvr|network video recorder|enregistreur" }
+
+# --- Postes et téléphones
+- { type: pc, weight: 4, ports: ["135/tcp", "139/tcp", "445/tcp"] }
+- { type: pc, weight: 3, ports: ["3389/tcp"] }
+- { type: pc, weight: 3, netbios: true }
+- { type: pc, weight: 2, mdns: "_workstation|_rfb\\.|_device-info" }
+- { type: pc, weight: 2, vendor: "intel corporate|liteon|azurewave|dell inc|lenovo|hp inc|micro-star|gigabyte|asustek|apple" }
+- { type: phone, weight: 6, ports: ["62078/tcp"], product: "iPhone / iPad" }
+- { type: phone, weight: 4, random_mac: true }
+- { type: phone, weight: 3, mdns: "_companion-link|_apple-mobdev|_remotepairing" }
+- { type: phone, weight: 3, name: "iphone|ipad|android|galaxy|pixel|redmi|oneplus|huawei-|honor" }
+- { type: phone, weight: 2, vendor: "samsung electronics|xiaomi|oneplus|oppo|vivo mobile|motorola mobility|huawei device" }
+
+# --- Multimédia
+- { type: tv, weight: 5, mdns: "_googlecast|_airplay|_raop", product: "Chromecast / AirPlay" }
+- { type: tv, weight: 4, ssdp: "mediarenderer|dial|samsung.*tv|lg.*tv|bravia|roku|android tv" }
+- { type: tv, weight: 4, any_ports: ["8008/tcp", "8009/tcp"] }
+- { type: tv, weight: 4, vendor: "nvidia", ports: ["8008/tcp"], product: "NVIDIA Shield" }
+- { type: tv, weight: 3, name: "shield|chromecast|bravia|appletv|apple-tv|firetv|roku|tv" }
+- { type: media_player, weight: 5, ports: ["32400/tcp"], product: "Plex Media Server" }
+- { type: media_player, weight: 4, http_title: "jellyfin|emby|kodi|plex" }
+- { type: speaker, weight: 5, vendor: "sonos", product: "Sonos" }
+- { type: speaker, weight: 3, ports: ["1400/tcp"] }
+- { type: game_console, weight: 5, vendor: "nintendo|sony interactive|microsoft.*xbox" }
+
+# --- Maison connectée et IoT
+- { type: smart_home, weight: 5, ports: ["8123/tcp"], product: "Home Assistant" }
+- { type: smart_home, weight: 5, http_title: "home assistant|jeedom|domoticz|homey|hubitat|openhab|zigbee2mqtt", product: "Domotique / Home automation" }
+- { type: iot, weight: 4, vendor: "espressif|tuya|shelly|sonoff|itead|signify|philips lighting|lifx|nanoleaf|tp-link.*kasa|tp-link systems" }
+- { type: iot, weight: 3, mdns: "_hap\\.|_matter|_hue|_shelly|_esphomelib" }
+- { type: iot, weight: 2, any_ports: ["1883/tcp", "8883/tcp"] }
+- { type: iot, weight: 2, vendor: "raspberry pi", product: "Raspberry Pi" }
+- { type: server, weight: 2, vendor: "raspberry pi", product: "Raspberry Pi" }
+- { type: voip, weight: 5, any_ports: ["5060/tcp", "5061/tcp"], http_title: "phone|téléphone|voip|grandstream|yealink|snom|polycom|cisco ip phone|fanvil|gigaset" }
+- { type: voip, weight: 5, vendor: "yealink|grandstream|snom|polycom|fanvil|gigaset|avaya" }
+- { type: ups, weight: 6, http_title: "ups|onduleur|network management card|powerchute|eaton|apc", product: "Onduleur / UPS" }
+- { type: ups, weight: 3, vendor: "american power conversion|eaton|schneider electric" }

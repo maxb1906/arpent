@@ -26,9 +26,6 @@ var postProcessors = []PostProcessor{rules.Apply, diff.Apply}
 // Register ajoute une analyse exécutée après chaque audit enregistré.
 func Register(p PostProcessor) { postProcessors = append(postProcessors, p) }
 
-// DeviceType devine le type d'un appareil ; remplacé par fingerprint (étape 10).
-var DeviceType func(audit.Host) string
-
 // Begin enregistre l'audit « en cours » ; Run doit suivre.
 func Begin(s *store.Site, meta store.AuditMeta) (int64, error) { return s.BeginAudit(meta) }
 
@@ -46,7 +43,7 @@ func Run(ctx context.Context, s *store.Site, id int64, opt audit.Options) (*audi
 	if opt.Progress != nil {
 		opt.Progress(PhaseSave, 0, 1)
 	}
-	if err := s.CompleteAudit(id, res, DeviceType); err != nil {
+	if err := s.CompleteAudit(id, res, nil); err != nil {
 		s.EndAudit(id, store.StatusFailed, err)
 		return nil, err
 	}

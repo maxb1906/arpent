@@ -130,13 +130,14 @@ func (s *Site) CompleteAudit(id int64, res *audit.Result, deviceType func(audit.
 		}
 		names, _ := json.Marshal(nonNil(h.Names))
 		methods, _ := json.Marshal(nonNil(h.Methods))
-		dt := ""
+		dt := h.Type
 		if deviceType != nil {
 			dt = deviceType(h)
 		}
-		r, err := tx.Exec(`INSERT INTO observation (audit_id, device_id, ip, mac, vendor, random_mac, names, methods, device_type, rtt_us)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			id, devID, h.IP.String(), mac, h.Vendor, h.Random, string(names), string(methods), dt, h.RTT.Microseconds())
+		extra, _ := json.Marshal(h.Extra)
+		r, err := tx.Exec(`INSERT INTO observation (audit_id, device_id, ip, mac, vendor, random_mac, names, methods, device_type, rtt_us, extra)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			id, devID, h.IP.String(), mac, h.Vendor, h.Random, string(names), string(methods), dt, h.RTT.Microseconds(), string(extra))
 		if err != nil {
 			return err
 		}
@@ -264,6 +265,7 @@ type Observation struct {
 	Methods    []string
 	DeviceType string
 	RTT        time.Duration
+	Extra      audit.Extra
 	Services   []Service
 }
 
@@ -296,7 +298,7 @@ func (s *Site) DeviceHistory(deviceID int64) ([]Observation, error) {
 }
 
 func (s *Site) observations(where string, arg any) ([]Observation, error) {
-	rows, err := s.db.Query(`SELECT o.id, o.audit_id, o.ip, o.mac, o.vendor, o.random_mac, o.names, o.methods, o.device_type, o.rtt_us, `+
+	rows, err := s.db.Query(`SELECT o.id, o.audit_id, o.ip, o.mac, o.vendor, o.random_mac, o.names, o.methods, o.device_type, o.rtt_us, o.extra, `+
 		deviceCols+` FROM observation o JOIN device d ON d.id = o.device_id WHERE `+where+` ORDER BY o.audit_id, o.id`, arg)
 	if err != nil {
 		return nil, err
@@ -305,11 +307,11 @@ func (s *Site) observations(where string, arg any) ([]Observation, error) {
 	byID := map[int64]int{}
 	for rows.Next() {
 		var o Observation
-		var names, methods string
+		var names, methods, extra string
 		var rtt int64
 		var knownAt sql.NullString
 		var first, last sql.NullInt64
-		dst := []any{&o.ID, &o.AuditID, &o.IP, &o.MAC, &o.Vendor, &o.RandomMAC, &names, &methods, &o.DeviceType, &rtt}
+		dst := []any{&o.ID, &o.AuditID, &o.IP, &o.MAC, &o.Vendor, &o.RandomMAC, &names, &methods, &o.DeviceType, &rtt, &extra}
 		dst = append(dst, scanDevice(&o.Device, &knownAt, &first, &last)...)
 		if err := rows.Scan(dst...); err != nil {
 			rows.Close()
@@ -318,6 +320,7 @@ func (s *Site) observations(where string, arg any) ([]Observation, error) {
 		o.Device.KnownAt, o.Device.FirstAudit, o.Device.LastAudit = parseTS(knownAt), first.Int64, last.Int64
 		json.Unmarshal([]byte(names), &o.Names)
 		json.Unmarshal([]byte(methods), &o.Methods)
+		json.Unmarshal([]byte(extra), &o.Extra)
 		o.RTT = time.Duration(rtt) * time.Microsecond
 		byID[o.ID] = len(out)
 		out = append(out, o)

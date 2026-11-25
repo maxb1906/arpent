@@ -85,7 +85,7 @@
     <td>{{if .Device.Label}}<b>{{.Device.Label}}</b>{{if .Device.Location}} <span class="muted">({{.Device.Location}})</span>{{end}}<br>{{end}}<span class="small">{{join .Names ", "}}</span>{{if .Device.Known}} ✓{{end}}</td>
     <td class="mono small">{{.MAC}}</td>
     <td class="small">{{if .RandomMAC}}{{t "discover.random_mac"}}{{else}}{{.Vendor}}{{end}}</td>
-    <td class="small">{{if .DeviceType}}{{t (print "type." .DeviceType)}}{{end}}</td>
+    <td class="small">{{if .DeviceType}}{{t (print "type." .DeviceType)}}{{end}}{{if .Extra.Product}}<br>{{.Extra.Product}}{{end}}</td>
     <td class="small mono">{{range .Services}}{{.Key}} {{end}}</td>
   </tr>{{end}}
   </tbody></table>

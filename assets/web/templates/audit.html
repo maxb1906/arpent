@@ -58,7 +58,7 @@
       <td>{{if .Device.Label}}<b>{{.Device.Label}}</b><br>{{end}}<span class="small">{{join .Names ", "}}</span>{{if .Device.Known}} <span class="tag ok" title="{{t "web.known"}}">✓</span>{{end}}{{if index $.Data.IsNew .Device.ID}} <span class="tag warn">{{t "web.new"}}</span>{{end}}</td>
       <td class="mono small">{{.MAC}}</td>
       <td class="small">{{if .RandomMAC}}<span class="dim">{{t "discover.random_mac"}}</span>{{else}}{{.Vendor}}{{end}}</td>
-      <td class="small">{{if .DeviceType}}{{t (print "type." .DeviceType)}}{{end}}</td>
+      <td class="small">{{if .DeviceType}}{{t (print "type." .DeviceType)}}{{end}}{{if .Extra.Product}}<br><span class="dim">{{.Extra.Product}}</span>{{end}}</td>
       <td data-value="{{len .Services}}">{{range .Services}}<span class="port" title="{{.Name}}">{{.Key}}</span> {{end}}</td>
       {{$fc := index $.Data.DeviceFindings .Device.ID}}
       <td data-value="{{$fc.Score}}">{{with $fc.Critical}}<span class="level critical">{{.}}</span>{{end}}{{with $fc.Warning}}<span class="level warning">{{.}}</span>{{end}}{{with $fc.Info}}<span class="level info">{{.}}</span>{{end}}</td>

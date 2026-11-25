@@ -29,3 +29,8 @@ var Rules []byte
 //
 //go:embed report
 var Report embed.FS
+
+// Signatures permet de deviner le type d'appareil.
+//
+//go:embed signatures.yaml
+var Signatures []byte

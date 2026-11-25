@@ -8,10 +8,22 @@
   <dt>{{t "col.mac"}}</dt><dd class="mono">{{if .Obs.MAC}}{{.Obs.MAC}}{{else}}—{{end}}</dd>
   <dt>{{t "col.vendor"}}</dt><dd>{{if .Obs.RandomMAC}}{{t "discover.random_mac"}}{{else if .Obs.Vendor}}{{.Obs.Vendor}}{{else}}—{{end}}</dd>
   <dt>{{t "col.name"}}</dt><dd>{{if .Obs.Names}}{{join .Obs.Names ", "}}{{else}}—{{end}}</dd>
-  <dt>{{t "web.type"}}</dt><dd>{{if .Obs.DeviceType}}{{t (print "type." .Obs.DeviceType)}}{{else}}—{{end}}</dd>
+  <dt>{{t "web.type"}}</dt><dd>{{if .Obs.DeviceType}}{{t (print "type." .Obs.DeviceType)}}{{else}}—{{end}}{{if .Obs.Extra.Product}} · {{.Obs.Extra.Product}}{{end}}</dd>
   <dt>{{t "col.methods"}}</dt><dd>{{join .Obs.Methods ", "}}</dd>
   <dt>{{t "web.seen"}}</dt><dd>{{t "web.seen_in" "count" (len .History)}}</dd>
 </dl>
+{{with .Obs.Extra}}{{if or .NetBIOS .MDNSName .MDNSServices .SSDP .SNMPDescr .DNSVersion}}
+<section class="card">
+  <h2>{{t "web.discovery_info"}}</h2>
+  <dl class="facts small">
+    {{with .NetBIOS}}<dt>{{t "web.netbios"}}</dt><dd>{{t "web.netbios_detail" "name" .Name "domain" .Domain}}{{if .User}} · {{t "web.netbios_user" "user" .User}}{{end}}<br><span class="mono dim">{{join .Names " "}}</span></dd>{{end}}
+    {{if or .MDNSName .MDNSServices}}<dt>{{t "web.mdns"}}</dt><dd>{{.MDNSName}}{{range .MDNSServices}} <span class="tag mono">{{.}}</span>{{end}}</dd>{{end}}
+    {{with .SSDP}}<dt>{{t "web.upnp"}}</dt><dd>{{if .FriendlyName}}<b>{{.FriendlyName}}</b> · {{end}}{{.Manufacturer}} {{.ModelName}} {{.ModelNumber}}<br><span class="mono dim">{{.DeviceType}} {{.Server}}</span></dd>{{end}}
+    {{if .SNMPDescr}}<dt>{{t "web.snmp"}}</dt><dd class="mono">{{.SNMPDescr}}</dd>{{end}}
+    {{if .DNSVersion}}<dt>{{t "web.dns_version"}}</dt><dd class="mono">{{.DNSVersion}}</dd>{{end}}
+  </dl>
+</section>
+{{end}}{{end}}
 
 <section class="card">
   <h2>{{t "web.annotations"}}</h2>

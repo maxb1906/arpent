@@ -100,4 +100,6 @@ CREATE TABLE change (
 );
 CREATE INDEX change_audit ON change(audit_id);
 `,
+	// 2 — informations des protocoles de découverte (NetBIOS, mDNS, SSDP…).
+	`ALTER TABLE observation ADD COLUMN extra TEXT NOT NULL DEFAULT '{}';`,
 }

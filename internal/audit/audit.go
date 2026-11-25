@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/maxb1906/arpent/internal/discovery"
+	"github.com/maxb1906/arpent/internal/fingerprint"
 	"github.com/maxb1906/arpent/internal/portscan"
 	"github.com/maxb1906/arpent/internal/probe"
 )
@@ -18,6 +19,7 @@ const (
 	PhaseDiscovery = "discovery"
 	PhasePorts     = "ports"
 	PhaseProbes    = "probes"
+	PhaseEnrich    = "enrich"
 )
 
 // Options règle un audit.
@@ -44,6 +46,8 @@ type Port struct {
 type Host struct {
 	discovery.Host
 	Ports []Port
+	Extra Extra
+	Type  string // type d'appareil deviné (fingerprint.Types)
 }
 
 // Result est le résultat brut d'un audit.
@@ -136,6 +140,16 @@ func Run(ctx context.Context, opt Options) (*Result, error) {
 			s.Name = portscan.ServiceName(p.Port)
 		}
 		p.Service = s
+	}
+	// 4. Protocoles de découverte (NetBIOS, mDNS, SSDP/UPnP, SNMP, DNS).
+	enrich(ctx, res.Hosts, progress(PhaseEnrich))
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	sigs := fingerprint.DefaultSignatures()
+	for i := range res.Hosts {
+		h := &res.Hosts[i]
+		h.Type, h.Extra.Product = fingerprint.Guess(sigs, Evidence(*h))
 	}
 	res.Finished = time.Now()
 	return res, nil

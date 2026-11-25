@@ -128,7 +128,7 @@ func cmdShow(e *env, args []string) int {
 func toObservations(res *audit.Result) []store.Observation {
 	out := make([]store.Observation, 0, len(res.Hosts))
 	for _, h := range res.Hosts {
-		o := store.Observation{IP: h.IP.String(), Vendor: h.Vendor, RandomMAC: h.Random, Names: h.Names, Methods: h.Methods}
+		o := store.Observation{IP: h.IP.String(), Vendor: h.Vendor, RandomMAC: h.Random, Names: h.Names, Methods: h.Methods, DeviceType: h.Type, Extra: h.Extra}
 		if h.MAC != nil {
 			o.MAC = h.MAC.String()
 		}
@@ -161,7 +161,11 @@ func printObservations(e *env, w io.Writer, obs []store.Observation, took time.D
 			parts = append(parts, strings.Join(o.Names, ", "))
 		}
 		if o.DeviceType != "" {
-			parts = append(parts, "["+e.T("type."+o.DeviceType)+"]")
+			t := e.T("type." + o.DeviceType)
+			if o.Extra.Product != "" {
+				t += " · " + o.Extra.Product
+			}
+			parts = append(parts, "["+t+"]")
 		}
 		fmt.Fprintln(w, strings.Join(parts, "  "))
 		if len(o.Services) == 0 {

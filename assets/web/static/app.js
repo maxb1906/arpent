@@ -72,7 +72,7 @@
   // Page de progression d'un audit : interrogation régulière.
   var box = document.getElementById("progress");
   if (box) {
-    var order = ["discovery", "ports", "probes", "save"];
+    var order = ["discovery", "ports", "probes", "enrich", "save"];
     var fill = box.querySelector(".fill"), counter = box.querySelector(".counter");
     var failures = 0;
     var tick = function () {

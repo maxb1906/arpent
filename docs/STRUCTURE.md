@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étape 9 (rapport) terminée** — prochaine étape : 10 (découverte enrichie).
+> Statut : **étape 10 (découverte enrichie) terminée** — prochaine étape : 11 (finitions v1.0).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -223,7 +223,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 - [x] **Étape 7 — Points d'attention** : moteur de règles + règles de départ (§ 5.4).
 - [x] **Étape 8 — Diff** : comparaison avec l'audit précédent, liste « connus / validés », annotations.
 - [x] **Étape 9 — Rapport** : HTML autonome, mise en page d'impression PDF, exports CSV/JSON.
-- [ ] **Étape 10 — Découverte enrichie** : NetBIOS, mDNS, SSDP, SMB, SNMP, devinette du type d'appareil.
+- [x] **Étape 10 — Découverte enrichie** : NetBIOS, mDNS, SSDP, SMB, SNMP, devinette du type d'appareil.
 - [ ] **Étape 11 — Finitions v1.0** : écran d'autorisation légale, config de base (nom du technicien), README FR/EN, test complet sur le LAN du homelab, publication de la **v1.0** dans les GitHub Releases.
 
 **Version complète (après la v1.0)** — détail au § 11 :
@@ -339,3 +339,6 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Exports : CSV (une ligne par service, BOM UTF-8 pour Excel, séparateur `;` en français), JSON (clés anglaises stables, textes des points dans la langue choisie). Langue du rapport indépendante de l'interface (`?lang=` dans l'UI, `--report-lang` en CLI). Fichiers enregistrés dans `sites/<slug>/rapports/AAAA-MM-JJ_audit-<n>.<ext>` (numéro d'audit ajouté au nom du § 4 pour distinguer plusieurs audits le même jour). CLI `arpent report --site … [--format html|csv|json] [--report-lang en] [--out fichier|-]`.
 - **2026-11-25** — Fonctions de modèles partagées entre interface et rapport déplacées dans `internal/i18n` (`TemplateFuncs`).
 - **2026-11-25** — CI : l'exe lancé sans argument ouvrant désormais l'interface, l'étape Windows restait bloquée ; le workflow appelle `hello` explicitement, a un délai maximal de 15 min et teste réellement `ui` (démarrage, connexion par le jeton, page d'accueil) puis `report`.
+- **2026-11-25** — Étape 10 terminée. Nouvelle phase d'audit « enrichissement » : décodage des réponses UDP déjà reçues au scan — NetBIOS NBSTAT (nom, groupe/domaine, utilisateur connecté `<03>`, partage `<20>`), SNMP `sysDescr` (BER), DNS `version.bind`, SSDP (en-têtes) puis description UPnP XML (nom, fabricant, modèle, type — seulement si elle est hébergée par l'appareil lui-même), mDNS (types de services) puis requête mDNS unicast inverse pour le nom `.local`. Les noms NetBIOS/mDNS complètent les noms DNS. Données conservées dans `observation.extra` (JSON, migration 2 du schéma — testée depuis une base v1).
+- **2026-11-25** — Sonde SMB (TCP 445, sans authentification) : une négociation ne proposant que `NT LM 0.12` (acceptée = SMBv1 actif, ce qui active la règle critique `smb_v1`), puis une négociation SMB2 proposant 2.0.2 à 3.0.2 (dialecte retenu et signature exigée/activée). 3.1.1 n'est pas proposé (il exige des contextes de négociation) : le dialecte affiché est donc « au moins » celui-là.
+- **2026-11-25** — Type d'appareil : `assets/signatures.yaml` (≈ 80 signatures pondérées : fabricant OUI, noms, ports, titres et serveurs HTTP, UPnP, mDNS, SNMP, NetBIOS, MAC aléatoire) ; le type au score le plus élevé (≥ 3) est retenu, avec un libellé produit (ex. « QNAP NAS », « Proxmox VE »). 20 types traduits. La devinette est faite à la fin de `audit.Run` (et non via le stockage) pour éviter un cycle d'imports. Le type et le produit apparaissent dans l'inventaire, la fiche, le rapport et la CLI ; la fiche affiche une section « Protocoles de découverte ».
