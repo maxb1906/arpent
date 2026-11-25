@@ -2,12 +2,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 
 	"github.com/maxb1906/arpent/internal/config"
@@ -112,8 +114,39 @@ func usage(e *env, w io.Writer) {
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-	os.Exit(run(ctx, os.Args[1:], os.Stdout, os.Stderr))
+	code := func() (code int) {
+		// Lancé par double-clic, la fenêtre se ferme à la sortie : on garde
+		// l'erreur (ou le plantage) visible jusqu'à ce que l'utilisateur valide.
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Fprintf(os.Stderr, "panic: %v\n%s\n", r, debug.Stack())
+				code = 3
+			}
+			if code != 0 && launchedAlone() {
+				pause(os.Args[1:])
+			}
+		}()
+		return run(ctx, os.Args[1:], os.Stdout, os.Stderr)
+	}()
+	stop()
+	os.Exit(code)
+}
+
+// pause affiche « Appuyez sur Entrée » et attend.
+func pause(args []string) {
+	msg := "Appuyez sur Entrée pour fermer cette fenêtre. / Press Enter to close this window."
+	if b, err := i18n.Default(); err == nil {
+		lang := b.Detect()
+		for i, a := range args {
+			if a == "--lang" && i+1 < len(args) && b.Has(args[i+1]) {
+				lang = args[i+1]
+			}
+		}
+		msg = b.Translator(lang).T("cli.press_enter")
+	}
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, msg)
+	bufio.NewReader(os.Stdin).ReadString('\n')
 }
 
 func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {

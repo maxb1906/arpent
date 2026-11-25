@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/maxb1906/arpent/internal/web"
 )
@@ -17,6 +20,12 @@ func cmdUI(e *env, args []string) int {
 	dir, err := e.dataDir()
 	if err != nil {
 		return e.fail(err)
+	}
+	// Copie de la sortie dans arpent-data/arpent.log (diagnostic quand la
+	// fenêtre de console s'est fermée).
+	if f, err := os.OpenFile(filepath.Join(dir, "arpent.log"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644); err == nil {
+		defer f.Close()
+		e.stdout, e.stderr = io.MultiWriter(e.stdout, f), io.MultiWriter(e.stderr, f)
 	}
 	ctx, quit := context.WithCancel(e.ctx)
 	defer quit()

@@ -43,6 +43,7 @@
   "cli.cmd_usage": "Options de « arpent {command} » :",
   "cli.commands": "Commandes :",
   "cli.error": "Erreur : {error}",
+  "cli.press_enter": "Appuyez sur Entrée pour fermer cette fenêtre.",
   "cli.unknown_command": "Commande inconnue : {command}",
   "cli.unknown_lang": "Langue non prise en charge : {lang} (langues disponibles : {available})",
   "cli.usage": "Utilisation : arpent [--lang fr|en] [--data dossier] <commande> [options]",
