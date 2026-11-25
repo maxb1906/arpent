@@ -80,3 +80,38 @@ func TestPortsLoopback(t *testing.T) {
 		t.Errorf("code %d : %s", code, out)
 	}
 }
+
+func TestScanSaveAndShow(t *testing.T) {
+	data := t.TempDir()
+	old := stdin
+	defer func() { stdin = old }()
+
+	// Sans confirmation : refus.
+	stdin = strings.NewReader("\n")
+	code, out := runCLI(t, "--lang", "en", "--data", data, "scan", "--site", "Café Test", "--range", "127.0.0.1", "--profile", "quick", "--no-discover", "--no-udp")
+	if code != 1 || !strings.Contains(out, "illegal") {
+		t.Fatalf("code %d : %s", code, out)
+	}
+	stdin = strings.NewReader("y\n")
+	code, out = runCLI(t, "--lang", "en", "--data", data, "scan", "--site", "Café Test", "--technician", "Max", "--range", "127.0.0.1", "--profile", "quick", "--no-discover", "--no-udp")
+	if code != 0 || !strings.Contains(out, "saved in site \"cafe-test\"") {
+		t.Fatalf("code %d : %s", code, out)
+	}
+	// Second audit : plus de question.
+	stdin = strings.NewReader("")
+	if code, out = runCLI(t, "--data", data, "scan", "--site", "cafe-test", "--range", "127.0.0.1", "--profile", "quick", "--no-discover", "--no-udp"); code != 0 {
+		t.Fatalf("code %d : %s", code, out)
+	}
+	if code, out = runCLI(t, "--lang", "en", "--data", data, "sites"); code != 0 || !strings.Contains(out, "Café Test") {
+		t.Errorf("sites : %s", out)
+	}
+	if code, out = runCLI(t, "--lang", "en", "--data", data, "audits", "--site", "Café Test"); code != 0 || !strings.Contains(out, "done") || !strings.Contains(out, "Max") {
+		t.Errorf("audits : %s", out)
+	}
+	if code, out = runCLI(t, "--lang", "en", "--data", data, "show", "--site", "Café Test"); code != 0 || !strings.Contains(out, "Audit #2") || !strings.Contains(out, "127.0.0.1") {
+		t.Errorf("show : %s", out)
+	}
+	if code, _ = runCLI(t, "--data", data, "show", "--site", "absent"); code != 1 {
+		t.Errorf("site absent : code %d", code)
+	}
+}

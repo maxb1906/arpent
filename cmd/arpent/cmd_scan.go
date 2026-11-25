@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"io"
+	"net/netip"
 	"strings"
 	"time"
 
 	"github.com/maxb1906/arpent/internal/audit"
+	"github.com/maxb1906/arpent/internal/netinfo"
 	"github.com/maxb1906/arpent/internal/portscan"
 	"github.com/maxb1906/arpent/internal/probe"
+	"github.com/maxb1906/arpent/internal/store"
 )
 
 func cmdScan(e *env, args []string) int {
@@ -19,6 +21,9 @@ func cmdScan(e *env, args []string) int {
 	noUDP := fs.Bool("no-udp", false, "")
 	noDiscover := fs.Bool("no-discover", false, "")
 	yes := fs.Bool("yes", false, "")
+	site := fs.String("site", "", "")
+	technician := fs.String("technician", "", "")
+	authorized := fs.Bool("authorized", false, "")
 	if code, ok := e.parse(fs, args); !ok {
 		return code
 	}
@@ -34,12 +39,75 @@ func cmdScan(e *env, args []string) int {
 	if err != nil {
 		return e.fail(err)
 	}
-	res, err := runAudit(e, audit.Options{Targets: targets, Profile: profile, Rate: *rate, NoUDP: *noUDP, NoDiscovery: *noDiscover})
+	opt := audit.Options{Targets: targets, Profile: profile, Rate: *rate, NoUDP: *noUDP, NoDiscovery: *noDiscover}
+	if *site == "" {
+		res, err := runAudit(e, opt)
+		if err != nil {
+			return e.fail(err)
+		}
+		printObservations(e, e.stdout, toObservations(res), res.Finished.Sub(res.Started))
+		return 0
+	}
+
+	// Audit enregistré dans un site.
+	dir, err := e.dataDir()
 	if err != nil {
 		return e.fail(err)
 	}
-	printAudit(e, e.stdout, res)
+	s, err := store.CreateSite(dir, *site)
+	if err != nil {
+		return e.fail(err)
+	}
+	defer s.Close()
+	meta := store.AuditMeta{Technician: *technician, Ranges: rangeLabel(*rng, targets), Profile: string(profile), Targets: len(targets)}
+	if _, ok := s.Authorized(); !ok {
+		// Premier audit du site : confirmation d'autorisation obligatoire (§ 5.8).
+		fmt.Fprintln(e.stderr, e.T("legal.warning"))
+		if !*authorized && !e.confirm(e.T("legal.confirm", "site", *site)) {
+			fmt.Fprintln(e.stderr, e.T("cli.aborted"))
+			return 1
+		}
+		meta.AuthorizedAt, meta.AuthorizedBy = time.Now(), *technician
+	}
+	id, err := s.BeginAudit(meta)
+	if err != nil {
+		return e.fail(err)
+	}
+	res, err := runAudit(e, opt)
+	if err != nil {
+		status := store.StatusFailed
+		if e.ctx.Err() != nil {
+			status = store.StatusCancelled
+		}
+		s.EndAudit(id, status, err)
+		return e.fail(err)
+	}
+	if err := s.CompleteAudit(id, res, nil); err != nil {
+		return e.fail(err)
+	}
+	obs, err := s.Observations(id)
+	if err != nil {
+		return e.fail(err)
+	}
+	printObservations(e, e.stdout, obs, res.Finished.Sub(res.Started))
+	fmt.Fprintln(e.stdout, e.T("scan.saved", "id", fmt.Sprint(id), "site", s.Slug, "dir", s.Dir))
 	return 0
+}
+
+// rangeLabel décrit les plages auditées pour l'historique.
+func rangeLabel(rng string, targets []netip.Addr) string {
+	if rng != "" {
+		return rng
+	}
+	ifs, err := netinfo.Interfaces()
+	if err != nil {
+		return ""
+	}
+	var parts []string
+	for _, sn := range netinfo.SuggestSubnets(ifs) {
+		parts = append(parts, sn.Prefix.String())
+	}
+	return strings.Join(parts, ", ")
 }
 
 // runAudit lance un audit en affichant la progression par phase.
@@ -63,36 +131,6 @@ func runAudit(e *env, opt audit.Options) (*audit.Result, error) {
 		p.done()
 	}
 	return res, err
-}
-
-func printAudit(e *env, w io.Writer, res *audit.Result) {
-	open := 0
-	for _, h := range res.Hosts {
-		fmt.Fprintln(w)
-		line := h.IP.String()
-		if h.MAC != nil {
-			line += "  " + h.MAC.String()
-		}
-		if h.Random {
-			line += "  " + e.T("discover.random_mac")
-		} else if h.Vendor != "" {
-			line += "  " + h.Vendor
-		}
-		if len(h.Names) > 0 {
-			line += "  " + strings.Join(h.Names, ", ")
-		}
-		fmt.Fprintln(w, line)
-		if len(h.Ports) == 0 {
-			fmt.Fprintln(w, "  "+e.T("scan.no_port"))
-		}
-		for _, p := range h.Ports {
-			open++
-			fmt.Fprintf(w, "  %-10s %-12s %s\n", fmt.Sprintf("%d/%s", p.Port, p.Proto), dash(p.Service.Name), describe(e, p.Service))
-		}
-	}
-	fmt.Fprintln(w)
-	fmt.Fprintln(w, e.T("scan.summary", "hosts", fmt.Sprint(len(res.Hosts)), "open", fmt.Sprint(open),
-		"seconds", fmt.Sprintf("%.1f", res.Finished.Sub(res.Started).Seconds())))
 }
 
 // describe résume un service sur une ligne.

@@ -24,6 +24,7 @@ type env struct {
 	ctx    context.Context
 	bundle *i18n.Bundle
 	tr     *i18n.Translator
+	data   string // --data
 	stdin  io.Reader
 	stdout io.Writer
 	stderr io.Writer
@@ -73,7 +74,7 @@ type command struct {
 var commands = map[string]command{}
 
 // order fixe l'ordre d'affichage des commandes dans l'aide.
-var order = []string{"hello", "interfaces", "arp", "scan", "discover", "ports", "version", "help"}
+var order = []string{"hello", "interfaces", "arp", "scan", "sites", "audits", "show", "discover", "ports", "version", "help"}
 
 func init() {
 	commands["hello"] = command{run: cmdHello}
@@ -84,6 +85,9 @@ func init() {
 	commands["discover"] = command{run: cmdDiscover}
 	commands["ports"] = command{run: cmdPorts}
 	commands["scan"] = command{run: cmdScan}
+	commands["sites"] = command{run: cmdSites}
+	commands["audits"] = command{run: cmdAudits}
+	commands["show"] = command{run: cmdShow}
 }
 
 func usage(e *env, w io.Writer) {
@@ -111,6 +115,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("arpent", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	lang := fs.String("lang", "", "fr|en")
+	data := fs.String("data", "", "")
 	parseErr := fs.Parse(args)
 
 	if *lang == "" {
@@ -121,6 +126,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 	e.tr = bundle.Translator(*lang)
+	e.data = *data
 
 	if parseErr == flag.ErrHelp {
 		usage(e, stdout)

@@ -74,3 +74,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./dist/arpent-windows-amd64.exe scan --range 127.0.0.1 --profile quick --no-discover
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./dist/arpent-windows-amd64.exe --data "$env:RUNNER_TEMP\arpent-data" scan --site "CI Windows" --authorized --range 127.0.0.1 --profile quick --no-discover
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./dist/arpent-windows-amd64.exe --data "$env:RUNNER_TEMP\arpent-data" show --site "CI Windows"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

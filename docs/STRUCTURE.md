@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étape 4 (sondes) terminée** — prochaine étape : 5 (stockage).
+> Statut : **étape 5 (stockage) terminée** — prochaine étape : 6 (interface web locale).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -177,6 +177,7 @@ internal/audit/       # orchestration d'un audit : découverte → ports → son
 internal/rules/       # moteur de points d'attention
 internal/diff/        # comparaison entre deux audits
 internal/store/       # SQLite (schéma, migrations, requêtes)
+internal/config/      # dossier de données portable, config.yaml
 internal/report/      # rendu HTML autonome, CSV, JSON
 internal/web/         # serveur local + API + assets embarqués
 assets/               # oui.tsv.gz, signatures.yaml, rules.yaml, templates, CSS/JS
@@ -216,7 +217,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 - [x] **Étape 2 — Découverte** : réveil des hôtes, DNS inverse, base OUI embarquée → liste d'appareils en CLI.
 - [x] **Étape 3 — Scan de ports** : TCP connect concurrent, profils, limitation de débit.
 - [x] **Étape 4 — Sondes** : bannières génériques, HTTP, TLS, SSH.
-- [ ] **Étape 5 — Stockage** : schéma SQLite, sites, audits, sauvegarde des résultats.
+- [x] **Étape 5 — Stockage** : schéma SQLite, sites, audits, sauvegarde des résultats.
 - [ ] **Étape 6 — Interface web locale** : lancement du serveur + navigateur, liste des sites, lancement d'un audit avec progression, tableau d'inventaire, fiche appareil.
 - [ ] **Étape 7 — Points d'attention** : moteur de règles + règles de départ (§ 5.4).
 - [ ] **Étape 8 — Diff** : comparaison avec l'audit précédent, liste « connus / validés », annotations.
@@ -320,3 +321,6 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — UDP ciblé : charges utiles construites à la main (DNS `version.bind` TXT CH, NetBIOS NBSTAT `*`, SNMPv1 GetRequest `sysDescr.0` communauté `public`, SSDP M-SEARCH, mDNS `_services._dns-sd._udp.local`). La réponse brute est conservée pour les sondes de l'étape 10.
 - **2026-11-25** — Étape 4 terminée. `internal/probe` : (1) bannière spontanée (1,5 s) reconnue pour SSH, FTP, SMTP, POP3, IMAP, Telnet (négociation IAC), VNC (RFB), MySQL (paquet de poignée de main) ; (2) sinon TLS puis HTTP, ou HTTP puis TLS selon le port, et bascule vers TLS quand un port « HTTP » répond 400 (requête en clair sur port HTTPS). HTTP : `GET /` sans suivre les redirections, titre (tokenizer `x/net/html`, Latin-1 toléré), `Server`, `X-Powered-By`, `Location`, realm `WWW-Authenticate`, favicon (`<link rel=icon>` ou `/favicon.ico`) haché au format Shodan (MurmurHash3 du base64). TLS : version, suite, sujet/émetteur, SAN, validité, auto-signé, empreinte SHA-256, taille de clé ; TLS 1.0 et suites anciennes acceptées pour pouvoir observer les vieux équipements (vérification désactivée volontairement, le certificat est analysé à part). User-Agent explicite « Arpent (network audit; +URL du dépôt) ».
 - **2026-11-25** — Nouveau paquet `internal/audit` (ajouté au § 7) qui enchaîne découverte → ports → sondes, partagé par la CLI, le stockage et l'interface web. Commande `arpent scan` (affichage seul ; la sauvegarde arrive à l'étape 5).
+- **2026-11-25** — Étape 5 terminée. `internal/store` : une base `arpent-data/sites/<slug>/site.db` par site (slug sans accents via `golang.org/x/text/unicode/norm`), schéma du § 6 versionné par `PRAGMA user_version` (migrations uniquement additives), WAL + clés étrangères. Identité d'un appareil : `mac:<mac>`, à défaut `ip:<ip>|<nom>`. Les points d'attention seront stockés sous forme `règle + paramètres JSON` (pas de texte figé) pour pouvoir produire le rapport dans n'importe quelle langue.
+- **2026-11-25** — Dossier de données (`internal/config`) : `--data`, sinon `ARPENT_DATA`, sinon `arpent-data/` à côté de l'exe (dossier courant pour `go run`/tests) ; il doit être inscriptible. CLI : `scan --site … [--technician] [--authorized]`, `sites`, `audits --site`, `show --site [--audit N]`. Le premier audit d'un site exige la confirmation « autorisé à auditer », horodatée dans `audit.authorized_at` (§ 5.8, en avance sur l'étape 11).
+- **2026-11-25** — Dépendances ajoutées : `modernc.org/sqlite` v1.62.0 (la v1.63.0 avait moins de deux semaines), `golang.org/x/text` v0.44.0. L'exe Windows passe de ≈ 3 Mo à ≈ 12 Mo à cause du moteur SQLite transpilé.
