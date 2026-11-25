@@ -80,6 +80,17 @@
   {{end}}
 </section>
 
+{{if .Timeline}}
+<section class="card">
+  <h2>{{t "web.timeline"}}</h2>
+  <ol class="timeline">
+  {{range .Timeline}}<li class="{{.Change.Kind}}"><span class="when">{{datetime .Date}}</span>
+    <span class="what">{{t (print "change.icon." .Change.Kind)}} {{t (print "change." .Change.Kind)}}{{if .Change.Field}} ({{t (print "change.field." .Change.Field)}}){{end}}{{if .Change.Port}} <span class="port">{{.Change.Port}}/{{.Change.Proto}}</span>{{end}}</span>
+    <span class="mono small dim">{{.Change.Before}}{{if and .Change.Before .Change.After}} → {{end}}{{.Change.After}}</span></li>{{end}}
+  </ol>
+</section>
+{{end}}
+
 <section class="card">
   <h2>{{t "web.history"}}</h2>
   <table class="list">

@@ -43,6 +43,27 @@ func start(t *testing.T) *harness {
 	return h
 }
 
+// wait attend la fin de l'audit auditPath.
+func (h *harness) wait(auditPath string) {
+	h.t.Helper()
+	deadline := time.Now().Add(60 * time.Second)
+	for {
+		_, js := h.get("/api" + auditPath + "/progress")
+		var snap jobSnapshot
+		json.Unmarshal([]byte(js), &snap)
+		if snap.Status != "running" {
+			if snap.Status != "done" {
+				h.t.Fatalf("audit : %+v", snap)
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			h.t.Fatal("audit trop long")
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+}
+
 func (h *harness) get(path string) (int, string) {
 	h.t.Helper()
 	resp, err := h.client.Get(h.base + path)
@@ -141,24 +162,7 @@ func TestAuditFlow(t *testing.T) {
 		t.Fatalf("lancement : %s", path)
 	}
 	auditPath := path
-
-	// Attente de la fin de l'audit.
-	deadline := time.Now().Add(60 * time.Second)
-	for {
-		_, js := h.get("/api" + auditPath + "/progress")
-		var snap jobSnapshot
-		json.Unmarshal([]byte(js), &snap)
-		if snap.Status != "running" {
-			if snap.Status != "done" {
-				t.Fatalf("audit : %+v", snap)
-			}
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("audit trop long")
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
+	h.wait(auditPath)
 	code, body = h.get(auditPath)
 	if code != 200 || !strings.Contains(body, "127.0.0.1") || !strings.Contains(body, "Inventaire") {
 		t.Fatalf("page d'audit : %d", code)
@@ -239,6 +243,25 @@ func TestAuditFlow(t *testing.T) {
 		t.Errorf("site en anglais : %d", code)
 	}
 	noRawKeys(t, "site (en)", body)
+	// Second audit : évolution, comparaison, frise.
+	_, path2, _ := h.post("/sites/pharmacie-test/audits", url.Values{"ranges": {"127.0.0.1"}, "profile": {"quick"}, "no_udp": {"1"}})
+	h.wait(path2)
+	code, body = h.get("/sites/pharmacie-test")
+	if !strings.Contains(body, `<svg class="chart"`) || !strings.Contains(body, "Site evolution") {
+		t.Errorf("graphiques d'évolution absents (%d)", code)
+	}
+	noRawKeys(t, "site (évolution)", body)
+	code, body = h.get("/sites/pharmacie-test/compare")
+	if code != 200 || !strings.Contains(body, "Changes from") {
+		t.Errorf("comparaison : %d", code)
+	}
+	noRawKeys(t, "comparaison", body)
+	code, body = h.get(devPath)
+	if !strings.Contains(body, "Device timeline") || !strings.Contains(body, "First seen") {
+		t.Errorf("frise absente (%d)", code)
+	}
+	noRawKeys(t, "frise", body)
+
 	if code, body = h.get("/sites/inconnu"); code != 404 {
 		t.Errorf("site inconnu : %d", code)
 	}

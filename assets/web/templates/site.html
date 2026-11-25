@@ -44,6 +44,16 @@
   </form>
 </section>
 </div>
+{{if .Charts}}
+<section class="card">
+  <div class="row between"><h2>{{t "web.evolution"}}</h2><a href="/sites/{{.Site.Slug}}/compare">{{t "web.compare_audits"}} →</a></div>
+  <div class="charts">{{range .Charts}}<figure><figcaption>{{.Title}}</figcaption>{{.SVG}}</figure>{{end}}</div>
+  <details class="small"><summary>{{t "web.chart_table"}}</summary>
+    <table class="list"><thead><tr><th>{{t "col.date"}}</th><th>{{t "col.devices"}}</th><th>{{t "web.exposed_services"}}</th><th>{{t "web.findings_cw"}}</th></tr></thead><tbody>
+    {{range .Evolution}}<tr><td><a href="/sites/{{$.Data.Site.Slug}}/audits/{{.Audit.ID}}">{{datetime .Audit.Started}}</a></td><td>{{.Audit.Devices}}</td><td>{{.Audit.Ports}}</td><td>{{.Findings}}</td></tr>{{end}}
+    </tbody></table></details>
+</section>
+{{end}}
 <section class="card">
   <h2>{{t "web.audits"}}</h2>
   {{if .Audits}}

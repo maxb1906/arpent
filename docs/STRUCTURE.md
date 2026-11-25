@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étapes 0 à 10, 12 et 13 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`).
+> Statut : **étapes 0 à 10 et 12 à 14 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -230,7 +230,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 
 - [x] **Étape 12 — PDF en un clic** : détection d'Edge/Chrome, génération via `chromedp`, en-têtes/pieds de page, repli impression.
 - [x] **Étape 13 — Rapports à la marque** : profil émetteur, logo/couleurs, modèles surchargeables, types de rapport, recommandations éditables.
-- [ ] **Étape 14 — Comparaison libre et historique** : diff entre deux audits au choix, frise par appareil, graphique d'évolution.
+- [x] **Étape 14 — Comparaison libre et historique** : diff entre deux audits au choix, frise par appareil, graphique d'évolution.
 - [ ] **Étape 15 — Multi-sites** : portefeuille, rappels d'audit, export/import `.arpent`, recherche transverse.
 - [ ] **Étape 16 — Mode avancé Npcap** : détection Npcap + admin, ARP brut, scan SYN, écoute passive.
 - [ ] **Étape 17 — Signature de code** : candidature SignPath Foundation, intégration dans GitHub Actions, `CODE_SIGNING_POLICY.md`, première version signée.
@@ -351,3 +351,5 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Personnalisation avant export (migration 3) : synthèse libre du technicien par audit (`audit.comment`) et recommandation personnalisée **par règle** et par audit (table `recommendation`, un champ par type de point d'attention plutôt que par occurrence : c'est ainsi que le rapport les regroupe). Formulaire « Personnaliser le rapport » sur la page d'audit ; texte vide = texte par défaut.
 - **2026-11-25** — Modèles surchargeables : si `arpent-data/templates/report.html` et/ou `report.css` existent, ils remplacent les modèles embarqués ; `arpent templates` les y copie comme point de départ (sans écraser). Testé (CSS personnalisée prise en compte).
 - **2026-11-25** — PDF : sur le runner Ubuntu, Edge était trouvé en premier mais plantait (sandbox SUID mal installée) ; désormais tous les navigateurs trouvés sont essayés dans l'ordre (Chrome d'abord sous Linux), erreurs cumulées.
+- **2026-11-25** — Étape 14 terminée. Comparaison libre : page « Comparer deux audits » (deux listes déroulantes, premier → dernier par défaut) et `arpent compare --site … [--from N] [--to M]`, calculées à la volée par `diff.Between` (même logique que le diff enregistré). Frise par appareil (`diff.Timeline`) : première apparition, ports ouverts/fermés, versions et certificats modifiés, changements d'IP, disparition (seulement si l'audit couvrait son adresse) et réapparition.
+- **2026-11-25** — Graphique d'évolution du site (page du site, dès deux audits) : trois petits graphiques d'une série chacun (appareils, services exposés, points critiques + attention) plutôt qu'un graphique à plusieurs échelles, SVG généré côté serveur sans bibliothèque, infobulle par point, dernière valeur étiquetée, tableau des valeurs dépliable. Couleur de série validée avec le script de la compétence dataviz (`#1a6aa8` en clair, `#3d8fd0` en sombre : bande de luminosité, chroma, contraste OK). Rendu non vérifié visuellement (pas de navigateur sur la devbox) : à regarder pendant le test homelab.

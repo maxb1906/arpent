@@ -71,3 +71,31 @@ func TestIdenticalAudits(t *testing.T) {
 		t.Errorf("%+v", cs)
 	}
 }
+
+func TestTimeline(t *testing.T) {
+	day := func(d int) time.Time { return time.Date(2026, 1, d, 10, 0, 0, 0, time.UTC) }
+	audits := []store.Audit{{ID: 1, Started: day(1)}, {ID: 2, Started: day(2)}, {ID: 3, Started: day(3)}, {ID: 4, Started: day(4)}, {ID: 5, Started: day(5)}}
+	for i := range audits {
+		audits[i].Ranges = "192.168.1.0/24"
+	}
+	audits[3].Ranges = "10.0.0.0/24" // audit 4 : hors périmètre, l'absence ne compte pas
+	by := map[int64]store.Observation{
+		1: ob(9, "192.168.1.5", "m", sv(80, "http", "", "")),
+		2: ob(9, "192.168.1.6", "m", sv(80, "http", "", ""), sv(22, "ssh", "OpenSSH", "9.6")),
+		5: ob(9, "192.168.1.6", "m", sv(22, "ssh", "OpenSSH", "9.7")),
+	}
+	// Audit 3 : absent dans le périmètre → disparu ; audit 5 : retour.
+	var kinds []string
+	for _, e := range timeline(audits, by) {
+		kinds = append(kinds, e.Change.Kind)
+	}
+	want := []string{EventFirstSeen, store.ChangePortOpened, store.ChangeIPChanged, store.ChangeGoneDevice, EventReappeared, store.ChangeServiceChanged, store.ChangePortClosed}
+	if len(kinds) != len(want) {
+		t.Fatalf("%v", kinds)
+	}
+	for i := range want {
+		if kinds[i] != want[i] {
+			t.Errorf("%d : %s, attendu %s (%v)", i, kinds[i], want[i], kinds)
+		}
+	}
+}

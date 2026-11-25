@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"html/template"
 	"io/fs"
 	"net/http"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 	"github.com/maxb1906/arpent/assets"
 	"github.com/maxb1906/arpent/internal/audit"
 	"github.com/maxb1906/arpent/internal/config"
+	"github.com/maxb1906/arpent/internal/diff"
 	"github.com/maxb1906/arpent/internal/engine"
 	"github.com/maxb1906/arpent/internal/i18n"
 	"github.com/maxb1906/arpent/internal/netinfo"
@@ -45,6 +47,7 @@ func (s *Server) routes() {
 	m.HandleFunc("POST /sites/{slug}/audits/{id}/report", s.reportSave)
 	m.HandleFunc("POST /sites/{slug}/audits/{id}/customize", s.customize)
 	m.HandleFunc("GET /sites/{slug}/devices/{id}", s.devicePage)
+	m.HandleFunc("GET /sites/{slug}/compare", s.compare)
 	m.HandleFunc("POST /sites/{slug}/devices/{id}", s.annotate)
 	m.HandleFunc("POST /sites/{slug}/devices/{id}/known", s.setKnown)
 	s.mux = m
@@ -124,7 +127,9 @@ func (s *Server) site(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	charts, table := s.evolution(site, audits, s.lang(r))
 	s.render(w, r, "site", map[string]any{
+		"Charts": charts, "Evolution": table,
 		"Site": info, "Audits": audits, "Authorized": authorized, "AuthorizedAt": authAt,
 		"Subnets": subnets, "Ranges": strings.Join(ranges, ", "), "Profiles": portscan.Profiles, "DefaultProfile": cfg.DefaultProfile,
 		"Technician": technician, "Error": r.URL.Query().Get("error"),
@@ -443,7 +448,11 @@ func (s *Server) devicePage(w http.ResponseWriter, r *http.Request) {
 			findings = append(findings, f)
 		}
 	}
-	s.render(w, r, "device", map[string]any{"Site": info, "Device": dev, "Obs": cur, "History": rows, "Audit": audits[cur.AuditID], "Findings": findings})
+	tl, _ := diff.Timeline(site, id)
+	for i, j := 0, len(tl)-1; i < j; i, j = i+1, j-1 {
+		tl[i], tl[j] = tl[j], tl[i] // le plus récent d'abord
+	}
+	s.render(w, r, "device", map[string]any{"Site": info, "Device": dev, "Obs": cur, "History": rows, "Audit": audits[cur.AuditID], "Findings": findings, "Timeline": tl})
 }
 
 // back renvoie vers la page indiquée par le champ « back » (chemin local).
@@ -656,4 +665,93 @@ func (s *Server) customize(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	http.Redirect(w, r, "/sites/"+site.Slug+"/audits/"+itoa64(id)+"#customize", http.StatusSeeOther)
+}
+
+// evolRow : chiffres d'un audit pour le tableau d'évolution.
+type evolRow struct {
+	Audit    store.Audit
+	Findings int // critiques + attention
+}
+
+// evolution prépare les graphiques d'évolution du site (audits terminés, du
+// plus ancien au plus récent) : appareils, services exposés, points d'attention.
+func (s *Server) evolution(site *store.Site, audits []store.Audit, lang string) ([]chartData, []evolRow) {
+	counts, _ := site.FindingCountsByAudit()
+	var rows []evolRow
+	for i := len(audits) - 1; i >= 0; i-- {
+		a := audits[i]
+		if a.Status != store.StatusDone {
+			continue
+		}
+		c := counts[a.ID]
+		rows = append(rows, evolRow{a, c["critical"] + c["warning"]})
+	}
+	if len(rows) < 2 {
+		return nil, rows
+	}
+	tr := s.opt.Bundle.Translator(lang)
+	layout := "02/01/06"
+	if lang == "en" {
+		layout = "2006-01-02"
+	}
+	var dev, svc, fnd []point
+	for _, r := range rows {
+		l := r.Audit.Started.Local().Format(layout)
+		dev = append(dev, point{l, r.Audit.Devices})
+		svc = append(svc, point{l, r.Audit.Ports})
+		fnd = append(fnd, point{l, r.Findings})
+	}
+	return []chartData{
+		{tr.T("col.devices"), lineChart(tr.T("col.devices"), dev)},
+		{tr.T("web.exposed_services"), lineChart(tr.T("web.exposed_services"), svc)},
+		{tr.T("web.findings_cw"), lineChart(tr.T("web.findings_cw"), fnd)},
+	}, rows
+}
+
+type chartData struct {
+	Title string
+	SVG   template.HTML
+}
+
+func (s *Server) compare(w http.ResponseWriter, r *http.Request) {
+	site, err := s.openSite(r)
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	defer site.Close()
+	all, err := site.Audits()
+	if err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	var done []store.Audit
+	for _, a := range all {
+		if a.Status == store.StatusDone {
+			done = append(done, a)
+		}
+	}
+	info, _ := site.Info()
+	data := map[string]any{"Site": info, "Audits": done}
+	from, _ := strconv.ParseInt(r.URL.Query().Get("from"), 10, 64)
+	to, _ := strconv.ParseInt(r.URL.Query().Get("to"), 10, 64)
+	if from == 0 && to == 0 && len(done) >= 2 {
+		to, from = done[0].ID, done[len(done)-1].ID // par défaut : premier → dernier
+	}
+	data["From"], data["To"] = from, to
+	if from != 0 && to != 0 && from != to {
+		if from > to {
+			from, to = to, from
+		}
+		cs, err := diff.Between(site, from, to)
+		if err != nil {
+			s.fail(w, r, 404, err)
+			return
+		}
+		data["Changes"], data["Summary"] = cs, diff.Summary(cs)
+		fa, _ := site.GetAudit(from)
+		ta, _ := site.GetAudit(to)
+		data["FromAudit"], data["ToAudit"] = fa, ta
+	}
+	s.render(w, r, "compare", data)
 }

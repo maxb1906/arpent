@@ -1,0 +1,25 @@
+{{define "title"}}{{t "web.compare_audits"}}{{end}}
+{{define "crumbs"}}<a href="/">{{t "web.sites"}}</a> › <a href="/sites/{{.Data.Site.Slug}}">{{.Data.Site.Name}}</a> › {{t "web.compare_audits"}}{{end}}
+{{define "content"}}
+{{with .Data}}
+<h1>{{t "web.compare_audits"}} — {{.Site.Name}}</h1>
+<section class="card">
+  {{if lt (len .Audits) 2}}<p class="muted">{{t "web.compare_need_two"}}</p>{{else}}
+  <form method="get" class="row">
+    <label class="inline-label">{{t "web.compare_from"}}
+      <select name="from">{{range .Audits}}<option value="{{.ID}}"{{if eq .ID $.Data.From}} selected{{end}}>#{{.ID}} — {{datetime .Started}}</option>{{end}}</select></label>
+    <label class="inline-label">{{t "web.compare_to"}}
+      <select name="to">{{range .Audits}}<option value="{{.ID}}"{{if eq .ID $.Data.To}} selected{{end}}>#{{.ID}} — {{datetime .Started}}</option>{{end}}</select></label>
+    <button class="primary">{{t "web.compare"}}</button>
+  </form>
+  {{end}}
+</section>
+{{if .FromAudit}}
+<section class="card">
+  <h2>{{t "web.compare_title" "from" (datetime .FromAudit.Started) "to" (datetime .ToAudit.Started)}}</h2>
+  <div class="chips">{{range $k, $v := .Summary}}<span class="chip">{{t (print "change.icon." $k)}} {{t (print "change." $k)}} <b>{{$v}}</b></span>{{end}}</div>
+  {{template "changes" (dict "Changes" .Changes "Slug" .Site.Slug "Back" $.Path)}}
+</section>
+{{end}}
+{{end}}
+{{end}}

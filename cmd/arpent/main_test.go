@@ -126,6 +126,9 @@ func TestScanSaveAndShow(t *testing.T) {
 	if code, out = runCLI(t, "--data", data, "report", "--site", "Café Test", "--format", "json", "--out", "-"); code != 0 || !strings.Contains(out, `"devices"`) {
 		t.Errorf("report json : %d %s", code, out)
 	}
+	if code, out = runCLI(t, "--lang", "en", "--data", data, "compare", "--site", "Café Test"); code != 0 || !strings.Contains(out, "audit #1 and audit #2") {
+		t.Errorf("compare : %d %s", code, out)
+	}
 	if code, _ = runCLI(t, "--data", data, "show", "--site", "absent"); code != 1 {
 		t.Errorf("site absent : code %d", code)
 	}

@@ -102,3 +102,26 @@ func FindingCounts(fs []Finding) map[string]int {
 	}
 	return m
 }
+
+// FindingCountsByAudit compte les points d'attention par audit et par niveau.
+func (s *Site) FindingCountsByAudit() (map[int64]map[string]int, error) {
+	rows, err := s.db.Query(`SELECT audit_id, level, COUNT(*) FROM finding GROUP BY audit_id, level`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[int64]map[string]int{}
+	for rows.Next() {
+		var id int64
+		var level string
+		var n int
+		if err := rows.Scan(&id, &level, &n); err != nil {
+			return nil, err
+		}
+		if out[id] == nil {
+			out[id] = map[string]int{}
+		}
+		out[id][level] = n
+	}
+	return out, rows.Err()
+}
