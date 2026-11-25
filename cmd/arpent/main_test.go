@@ -120,6 +120,12 @@ func TestScanSaveAndShow(t *testing.T) {
 	if code, _ = runCLI(t, "--data", data, "annotate", "--site", "Café Test", "--ip", "10.9.9.9"); code != 1 {
 		t.Errorf("appareil inconnu : code %d", code)
 	}
+	if code, out = runCLI(t, "--lang", "en", "--data", data, "report", "--site", "Café Test", "--report-lang", "fr"); code != 0 || !strings.Contains(out, "rapports") {
+		t.Errorf("report : %d %s", code, out)
+	}
+	if code, out = runCLI(t, "--data", data, "report", "--site", "Café Test", "--format", "json", "--out", "-"); code != 0 || !strings.Contains(out, `"devices"`) {
+		t.Errorf("report json : %d %s", code, out)
+	}
 	if code, _ = runCLI(t, "--data", data, "show", "--site", "absent"); code != 1 {
 		t.Errorf("site absent : code %d", code)
 	}

@@ -52,6 +52,7 @@ jobs:
     name: Lancement de l'exe Windows
     needs: build
     runs-on: windows-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -62,7 +63,7 @@ jobs:
         run: |
           ./dist/arpent-windows-amd64.exe --lang fr
           ./dist/arpent-windows-amd64.exe --lang en
-          ./dist/arpent-windows-amd64.exe
+          ./dist/arpent-windows-amd64.exe hello
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./dist/arpent-windows-amd64.exe interfaces
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -78,3 +79,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./dist/arpent-windows-amd64.exe --data "$env:RUNNER_TEMP\arpent-data" show --site "CI Windows"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./dist/arpent-windows-amd64.exe --data "$env:RUNNER_TEMP\arpent-data" report --site "CI Windows"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Interface web (démarrage et page d'accueil)
+        shell: pwsh
+        run: |
+          $data = "$env:RUNNER_TEMP\arpent-ui"
+          $p = Start-Process -FilePath ./dist/arpent-windows-amd64.exe -ArgumentList "--data","$data","ui","--no-browser","--port","47123" -PassThru -RedirectStandardOutput ui.log -NoNewWindow
+          Start-Sleep -Seconds 3
+          $url = (Select-String -Path ui.log -Pattern 'http://127\.0\.0\.1:47123/login\?k=\S+').Matches[0].Value
+          $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+          $r = Invoke-WebRequest -Uri $url -WebSession $s -UseBasicParsing
+          if ($r.StatusCode -ne 200 -or $r.Content -notmatch 'Arpent') { Stop-Process $p; exit 1 }
+          Stop-Process $p

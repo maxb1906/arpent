@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io/fs"
 	"net/http"
+	"net/url"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -14,8 +16,10 @@ import (
 	"github.com/maxb1906/arpent/assets"
 	"github.com/maxb1906/arpent/internal/audit"
 	"github.com/maxb1906/arpent/internal/engine"
+	"github.com/maxb1906/arpent/internal/i18n"
 	"github.com/maxb1906/arpent/internal/netinfo"
 	"github.com/maxb1906/arpent/internal/portscan"
+	"github.com/maxb1906/arpent/internal/report"
 	"github.com/maxb1906/arpent/internal/store"
 )
 
@@ -34,6 +38,8 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /sites/{slug}/audits/{id}", s.auditPage)
 	m.HandleFunc("POST /sites/{slug}/audits/{id}/cancel", s.cancelAudit)
 	m.HandleFunc("GET /api/sites/{slug}/audits/{id}/progress", s.progress)
+	m.HandleFunc("GET /sites/{slug}/audits/{id}/report", s.reportView)
+	m.HandleFunc("POST /sites/{slug}/audits/{id}/report", s.reportSave)
 	m.HandleFunc("GET /sites/{slug}/devices/{id}", s.devicePage)
 	m.HandleFunc("POST /sites/{slug}/devices/{id}", s.annotate)
 	m.HandleFunc("POST /sites/{slug}/devices/{id}/known", s.setKnown)
@@ -328,6 +334,8 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	data["IsNew"] = isNew
+	data["Saved"] = r.URL.Query().Get("saved")
+	data["Langs"] = s.opt.Bundle.Languages()
 	data["Types"] = sortedCounts(types)
 	if prev, _ := site.PreviousAudit(id); prev != 0 {
 		if pa, err := site.GetAudit(prev); err == nil {
@@ -463,4 +471,67 @@ func (s *Server) setKnown(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	back(w, r, "/sites/"+site.Slug+"/devices/"+itoa64(id))
+}
+
+// reportData charge le rapport d'un audit et la langue demandée (?lang=).
+func (s *Server) reportData(r *http.Request) (*store.Site, *report.Data, *i18n.Translator, string, error) {
+	site, err := s.openSite(r)
+	if err != nil {
+		return nil, nil, nil, "", err
+	}
+	id, err := pathID(r, "id")
+	if err != nil {
+		site.Close()
+		return nil, nil, nil, "", err
+	}
+	d, err := report.Build(site, id, "Arpent "+s.opt.Version)
+	if err != nil {
+		site.Close()
+		return nil, nil, nil, "", err
+	}
+	if s.opt.Issuer != nil {
+		d.Issuer = s.opt.Issuer()
+	}
+	lang := r.FormValue("lang")
+	if !s.opt.Bundle.Has(lang) {
+		lang = s.lang(r)
+	}
+	format := r.FormValue("format")
+	if !slices.Contains(report.Formats, format) {
+		format = "html"
+	}
+	return site, d, s.opt.Bundle.Translator(lang), format, nil
+}
+
+func (s *Server) reportView(w http.ResponseWriter, r *http.Request) {
+	site, d, tr, format, err := s.reportData(r)
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	defer site.Close()
+	w.Header().Set("Content-Type", report.ContentType(format))
+	if format != "html" || r.FormValue("download") == "1" {
+		w.Header().Set("Content-Disposition", `attachment; filename="`+report.FileName(d.Audit, format)+`"`)
+	}
+	// Le rapport contient un petit script (bouton Imprimer) : CSP propre.
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'")
+	if err := report.Write(w, format, d, tr); err != nil {
+		http.Error(w, err.Error(), 500)
+	}
+}
+
+func (s *Server) reportSave(w http.ResponseWriter, r *http.Request) {
+	site, d, tr, format, err := s.reportData(r)
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	defer site.Close()
+	path := report.Path(site, d.Audit, format)
+	if err := report.WriteFile(path, format, d, tr); err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	http.Redirect(w, r, "/sites/"+site.Slug+"/audits/"+itoa64(d.Audit.ID)+"?saved="+url.QueryEscape(path), http.StatusSeeOther)
 }

@@ -173,6 +173,24 @@ func TestAuditFlow(t *testing.T) {
 	}
 	noRawKeys(t, "appareil", body)
 
+	// Rapport : affichage en anglais, export CSV, enregistrement dans le site.
+	code, body = h.get(auditPath + "/report?lang=en&format=html")
+	if code != 200 || !strings.Contains(body, "Network audit report") || !strings.Contains(body, "<style>") {
+		t.Errorf("rapport HTML : %d", code)
+	}
+	resp, err := h.client.Get(h.base + auditPath + "/report?format=csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if !strings.Contains(resp.Header.Get("Content-Disposition"), ".csv") {
+		t.Errorf("CSV : %v", resp.Header)
+	}
+	_, _, body = h.post(auditPath+"/report", url.Values{"format": {"html"}, "lang": {"fr"}})
+	if !strings.Contains(body, "Rapport enregistré") || !strings.Contains(body, "rapports") {
+		t.Error("rapport non enregistré")
+	}
+
 	// Annotation et validation de l'appareil.
 	devPath := strings.SplitN(m, "?", 2)[0]
 	_, _, body = h.post(devPath, url.Values{"label": {"Serveur devbox"}, "known": {"1"}, "back": {devPath}})

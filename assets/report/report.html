@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="{{.D.Generator}}">
+<title>{{t "report.title"}} — {{.D.Site.Name}} — {{date .D.Audit.Started}}</title>
+<style>{{.CSS}}{{if .D.Issuer.Color}}:root{--accent:{{.D.Issuer.Color}};}{{end}}</style>
+</head>
+<body>
+{{with .D}}
+<div class="toolbar no-print"><button onclick="window.print()">🖨 {{t "report.print"}}</button></div>
+
+<section class="cover page">
+  {{if .Issuer.LogoDataURI}}<img class="logo" src="{{.Issuer.LogoDataURI}}" alt="">{{end}}
+  <p class="kicker">{{t "report.title"}}</p>
+  <h1>{{.Site.Name}}</h1>
+  {{if .Site.Address}}<p class="address">{{.Site.Address}}</p>{{end}}
+  <dl class="cover-facts">
+    <dt>{{t "report.audit_date"}}</dt><dd>{{datetime .Audit.Started}}</dd>
+    {{if .Audit.Technician}}<dt>{{t "col.technician"}}</dt><dd>{{.Audit.Technician}}</dd>{{end}}
+    {{if .Issuer.Company}}<dt>{{t "report.issuer"}}</dt><dd>{{.Issuer.Company}}{{if .Issuer.Name}} — {{.Issuer.Name}}{{end}}</dd>{{end}}
+    {{if .Issuer.Contact}}<dt>{{t "web.contact"}}</dt><dd>{{.Issuer.Contact}}</dd>{{end}}
+    {{if .Site.Contact}}<dt>{{t "report.client_contact"}}</dt><dd>{{.Site.Contact}}</dd>{{end}}
+    <dt>{{t "report.audit_ref"}}</dt><dd>#{{.Audit.ID}}</dd>
+  </dl>
+  <p class="confidential">{{t "report.confidential"}}</p>
+</section>
+
+<section class="page">
+  <h2>1. {{t "report.summary"}}</h2>
+  <div class="risk {{.Risk}}"><span>{{t "report.risk_label"}}</span> <b>{{t (print "report.risk." .Risk)}}</b></div>
+  <p>{{t "report.summary_intro" "date" (date .Audit.Started) "site" .Site.Name "devices" (len .Observations) "ports" .OpenPorts "ranges" .Audit.Ranges}}</p>
+  <p>{{t "report.summary_findings" "critical" (index .Counts "critical") "warning" (index .Counts "warning") "info" (index .Counts "info")}}</p>
+  <p>{{t (print "report.risk_text." .Risk)}}</p>
+  {{if .Previous}}<p>{{t "report.summary_changes" "date" (date .Previous.Started) "new" (index .ChangeCounts "new_device") "unknown" .Unknown "gone" (index .ChangeCounts "gone_device") "opened" (index .ChangeCounts "port_opened")}}</p>{{end}}
+  <div class="kpis">
+    <div><b>{{len .Observations}}</b>{{t "col.devices"}}</div>
+    <div><b>{{.OpenPorts}}</b>{{t "report.services"}}</div>
+    <div class="critical"><b>{{index .Counts "critical"}}</b>{{t "level.critical"}}</div>
+    <div class="warning"><b>{{index .Counts "warning"}}</b>{{t "level.warning"}}</div>
+    <div class="info"><b>{{index .Counts "info"}}</b>{{t "level.info"}}</div>
+  </div>
+  {{$groups := .Groups}}
+  {{if $groups}}
+  <h3>{{t "report.priorities"}}</h3>
+  <ol class="priorities">
+    {{range $groups}}{{if ne .Level "info"}}<li><span class="level {{.Level}}">{{t (print "level." .Level)}}</span> {{ft .Rule "fix" .First.Params}} <span class="muted">({{t "report.devices_count" "count" .Device}})</span></li>{{end}}{{end}}
+  </ol>
+  {{end}}
+</section>
+
+<section class="page">
+  <h2>2. {{t "web.findings"}}</h2>
+  {{if not $groups}}<p>{{t "web.no_finding"}}</p>{{end}}
+  {{range $groups}}
+  <article class="group {{.Level}}">
+    <h3><span class="level {{.Level}}">{{t (print "level." .Level)}}</span> {{ft .Rule "title" .First.Params}}</h3>
+    <p>{{ft .Rule "explain" .First.Params}}</p>
+    <p class="fix"><b>{{t "web.fix"}} :</b> {{ft .Rule "fix" .First.Params}}</p>
+    <table><thead><tr><th>{{t "report.device"}}</th><th>{{t "report.port"}}</th><th>{{t "report.detail"}}</th></tr></thead><tbody>
+    {{range .Items}}<tr><td>{{if .Label}}{{.Label}} — {{end}}<span class="mono">{{.IP}}</span></td><td class="mono">{{if .Port}}{{.Port}}/{{.Proto}}{{end}}</td><td>{{ft .Rule "title" .Params}}</td></tr>{{end}}
+    </tbody></table>
+  </article>
+  {{end}}
+</section>
+
+{{if .Previous}}
+<section class="page">
+  <h2>3. {{t "report.evolution" "date" (date .Previous.Started)}}</h2>
+  {{if not .Changes}}<p>{{t "web.no_change"}}</p>{{else}}
+  <table><thead><tr><th></th><th>{{t "report.change"}}</th><th>{{t "report.device"}}</th><th>{{t "report.detail"}}</th></tr></thead><tbody>
+  {{range .Changes}}<tr class="ch {{.Kind}}"><td>{{t (print "change.icon." .Kind)}}</td><td>{{t (print "change." .Kind)}}{{if .Field}} ({{t (print "change.field." .Field)}}){{end}}{{if and (eq .Kind "new_device") (not .Known)}} <span class="level warning">{{t "report.unidentified"}}</span>{{end}}</td>
+    <td>{{if .Label}}{{.Label}} — {{end}}<span class="mono">{{.IP}}</span>{{if .Port}} <span class="mono">{{.Port}}/{{.Proto}}</span>{{end}}</td>
+    <td class="mono small">{{.Before}}{{if and .Before .After}} → {{end}}{{.After}}</td></tr>{{end}}
+  </tbody></table>{{end}}
+</section>
+{{end}}
+
+<section class="page">
+  <h2>{{if .Previous}}4{{else}}3{{end}}. {{t "web.inventory"}}</h2>
+  <table class="inventory"><thead><tr><th>{{t "col.ip"}}</th><th>{{t "col.name"}}</th><th>{{t "col.mac"}}</th><th>{{t "col.vendor"}}</th><th>{{t "web.type"}}</th><th>{{t "col.open_ports"}}</th></tr></thead><tbody>
+  {{range .Observations}}<tr>
+    <td class="mono">{{.IP}}</td>
+    <td>{{if .Device.Label}}<b>{{.Device.Label}}</b>{{if .Device.Location}} <span class="muted">({{.Device.Location}})</span>{{end}}<br>{{end}}<span class="small">{{join .Names ", "}}</span>{{if .Device.Known}} ✓{{end}}</td>
+    <td class="mono small">{{.MAC}}</td>
+    <td class="small">{{if .RandomMAC}}{{t "discover.random_mac"}}{{else}}{{.Vendor}}{{end}}</td>
+    <td class="small">{{if .DeviceType}}{{t (print "type." .DeviceType)}}{{end}}</td>
+    <td class="small mono">{{range .Services}}{{.Key}} {{end}}</td>
+  </tr>{{end}}
+  </tbody></table>
+</section>
+
+<section class="annex">
+  <h2>{{if .Previous}}5{{else}}4{{end}}. {{t "report.annex"}}</h2>
+  {{range .Observations}}{{if .Services}}
+  <article class="device">
+    <h3><span class="mono">{{.IP}}</span> {{.DisplayName}}{{if .Vendor}} <span class="muted small">· {{.Vendor}}</span>{{end}}</h3>
+    <table><thead><tr><th>{{t "report.port"}}</th><th>{{t "report.service"}}</th><th>{{t "report.detail"}}</th></tr></thead><tbody>
+    {{range .Services}}<tr><td class="mono">{{.Key}}</td><td>{{.Name}}{{if .Product}}<br><span class="small">{{.Product}} {{.Version}}</span>{{end}}</td><td class="small">
+      {{with .Details.HTTP}}HTTP {{.Status}}{{if .Title}} — « {{.Title}} »{{end}}{{if .Server}}<br>Server : <span class="mono">{{.Server}}</span>{{end}}{{if .PoweredBy}}<br>X-Powered-By : <span class="mono">{{.PoweredBy}}</span>{{end}}{{if .Location}}<br>→ <span class="mono">{{.Location}}</span>{{end}}<br>{{end}}
+      {{with .Details.TLS}}{{.Version}} · {{t "web.cert_subject"}} : {{.Subject}} · {{t "web.cert_issuer"}} : {{.Issuer}}{{if .SelfSigned}} ({{t "scan.self_signed"}}){{end}} · {{t "report.expires"}} {{date .NotAfter}}<br>{{end}}
+      {{with .Details.SSH}}SSH {{.Protocol}} · {{.Software}} {{.Comment}}<br>{{end}}
+      {{with .Details.SMB}}SMB {{join .Dialects ", "}}{{if .SMBv1}} · SMBv1{{end}}{{if .Signing}} · {{t "report.signing"}} {{.Signing}}{{end}}<br>{{end}}
+      {{if and (not .Details.HTTP) (not .Details.TLS) (not .Details.SSH) .Banner}}<span class="mono wrap">{{.Banner}}</span>{{end}}
+    </td></tr>{{end}}
+    </tbody></table>
+  </article>
+  {{end}}{{end}}
+
+  <h2>{{t "report.method"}}</h2>
+  <dl class="facts">
+    <dt>{{t "web.ranges"}}</dt><dd class="mono">{{.Audit.Ranges}}</dd>
+    <dt>{{t "col.profile"}}</dt><dd>{{t (print "profile." .Audit.Profile)}} — {{t (print "web.profile_desc." .Audit.Profile)}}</dd>
+    <dt>{{t "report.period"}}</dt><dd>{{datetime .Audit.Started}} → {{datetime .Audit.Finished}} ({{duration .Audit.Started .Audit.Finished}})</dd>
+    <dt>{{t "report.mode"}}</dt><dd>{{t (print "report.mode." .Audit.Mode)}}</dd>
+    {{if not .Audit.AuthorizedAt.IsZero}}<dt>{{t "report.authorization"}}</dt><dd>{{t "report.authorized_text" "date" (datetime .Audit.AuthorizedAt)}}</dd>{{end}}
+    <dt>{{t "report.tool"}}</dt><dd>{{.Generator}} — {{t "report.generated" "date" (datetime .Generated)}}</dd>
+  </dl>
+  <p class="small muted">{{t "report.limits"}}</p>
+  {{if .Issuer.Legal}}<p class="small muted">{{.Issuer.Legal}}</p>{{end}}
+</section>
+{{end}}
+</body>
+</html>

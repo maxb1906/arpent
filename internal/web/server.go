@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/maxb1906/arpent/internal/i18n"
+	"github.com/maxb1906/arpent/internal/report"
 )
 
 const (
@@ -34,6 +35,8 @@ type Options struct {
 	Version string
 	// OnQuit est appelé quand l'utilisateur clique « Quitter ».
 	OnQuit func()
+	// Issuer fournit l'émetteur des rapports (profil du technicien).
+	Issuer func() report.Issuer
 }
 
 // Server est l'interface web.

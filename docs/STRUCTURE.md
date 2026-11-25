@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étape 8 (diff) terminée** — prochaine étape : 9 (rapport).
+> Statut : **étape 9 (rapport) terminée** — prochaine étape : 10 (découverte enrichie).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -222,7 +222,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 - [x] **Étape 6 — Interface web locale** : lancement du serveur + navigateur, liste des sites, lancement d'un audit avec progression, tableau d'inventaire, fiche appareil.
 - [x] **Étape 7 — Points d'attention** : moteur de règles + règles de départ (§ 5.4).
 - [x] **Étape 8 — Diff** : comparaison avec l'audit précédent, liste « connus / validés », annotations.
-- [ ] **Étape 9 — Rapport** : HTML autonome, mise en page d'impression PDF, exports CSV/JSON.
+- [x] **Étape 9 — Rapport** : HTML autonome, mise en page d'impression PDF, exports CSV/JSON.
 - [ ] **Étape 10 — Découverte enrichie** : NetBIOS, mDNS, SSDP, SMB, SNMP, devinette du type d'appareil.
 - [ ] **Étape 11 — Finitions v1.0** : écran d'autorisation légale, config de base (nom du technicien), README FR/EN, test complet sur le LAN du homelab, publication de la **v1.0** dans les GitHub Releases.
 
@@ -335,3 +335,7 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Affichage : section « Points d'attention » de l'audit (compteurs par niveau, détail dépliable), colonne triable dans l'inventaire, section sur la fiche appareil ; `arpent show` et `arpent scan --site` listent les points. La règle SMBv1 attend la sonde SMB de l'étape 10.
 - **2026-11-25** — Étape 8 terminée. `internal/diff` : comparaison par identité d'appareil (table `device`) entre un audit et le précédent, enregistrée dans `change` après chaque audit (post-traitement). Types : nouvel appareil, appareil disparu (seulement s'il était dans les plages du nouvel audit, pour ne pas signaler comme « disparu » ce qu'on n'a pas cherché), port ouvert/fermé, service modifié (nom, produit+version, en-tête `Server`, certificat = sujet+expiration+empreinte, logiciel SSH — pas le titre des pages, trop changeant), nouvelle IP pour une même MAC, même IP avec une autre MAC. `diff.Between` compare aussi deux audits quelconques (prépare l'étape 14).
 - **2026-11-25** — Annotations et liste « connus / validés » : formulaire sur la fiche appareil (nom convivial, emplacement, propriétaire, notes, case « connu / validé »), bouton « valider » sur chaque nouvel appareil de la liste des changements, étiquette « nouveau » dans l'inventaire ; CLI `arpent annotate --site … --ip|--device … [--label …] [--known|--unknown]` (seules les options données sont modifiées). `show`/`scan` affichent les changements.
+- **2026-11-25** — Étape 9 terminée. `internal/report` : rapport HTML autonome (un seul fichier, CSS intégré, aucune ressource externe — vérifié par test), mis en page pour A4 (`@page`, sauts de page, en-têtes de tableau répétés) avec bouton « Imprimer / PDF ». Contenu : page de garde (site, adresse, date, technicien, émetteur et logo prévus pour l'étape 13, mention de confidentialité), résumé non technique (niveau de risque global, phrases générées, chiffres clés, actions prioritaires), points d'attention regroupés par règle avec explication et recommandation, évolution depuis l'audit précédent, inventaire, annexe technique par appareil, méthode et cadre (plages, profil, période, mode, autorisation horodatée, limites de l'audit).
+- **2026-11-25** — Exports : CSV (une ligne par service, BOM UTF-8 pour Excel, séparateur `;` en français), JSON (clés anglaises stables, textes des points dans la langue choisie). Langue du rapport indépendante de l'interface (`?lang=` dans l'UI, `--report-lang` en CLI). Fichiers enregistrés dans `sites/<slug>/rapports/AAAA-MM-JJ_audit-<n>.<ext>` (numéro d'audit ajouté au nom du § 4 pour distinguer plusieurs audits le même jour). CLI `arpent report --site … [--format html|csv|json] [--report-lang en] [--out fichier|-]`.
+- **2026-11-25** — Fonctions de modèles partagées entre interface et rapport déplacées dans `internal/i18n` (`TemplateFuncs`).
+- **2026-11-25** — CI : l'exe lancé sans argument ouvrant désormais l'interface, l'étape Windows restait bloquée ; le workflow appelle `hello` explicitement, a un délai maximal de 15 min et teste réellement `ui` (démarrage, connexion par le jeton, page d'accueil) puis `report`.

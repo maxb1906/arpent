@@ -94,3 +94,6 @@ details.finding summary { cursor: pointer; } details.finding p { margin: .4rem 0
 table.changes td.ico { width: 2rem; font-size: 1.1rem; }
 tr.ch.new_device td, tr.ch.ip_reassigned td { background: color-mix(in srgb, var(--warn) 8%, transparent); }
 button.small { padding: .15rem .55rem; font-size: .82rem; }
+.notice { background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); padding: .6rem .8rem; border-radius: 7px; word-break: break-all; }
+.report-bar { padding: .7rem 1.1rem; } .inline-label { flex-direction: row; align-items: center; gap: .4rem; font-weight: 400; }
+.inline-label select { width: auto; }

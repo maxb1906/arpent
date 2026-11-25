@@ -24,3 +24,8 @@ var Web embed.FS
 //
 //go:embed rules.yaml
 var Rules []byte
+
+// Report contient le modèle du rapport (report/report.html, report.css).
+//
+//go:embed report
+var Report embed.FS

@@ -9,6 +9,19 @@
   · {{t "web.duration"}} : {{duration .Audit.Started .Audit.Finished}}{{if .Audit.Technician}} · {{.Audit.Technician}}{{end}}
 </p>
 {{if .Audit.Error}}<p class="alert">{{.Audit.Error}}</p>{{end}}
+{{if .Saved}}<p class="notice">{{t "web.report_saved" "path" .Saved}}</p>{{end}}
+<section class="card report-bar">
+  <form method="get" action="/sites/{{.Site.Slug}}/audits/{{.Audit.ID}}/report" target="_blank" class="row" id="report-form">
+    <b>{{t "web.report"}}</b>
+    <label class="inline-label">{{t "web.report_lang"}}
+      <select name="lang">{{range .Langs}}<option value="{{.}}"{{if eq . $.Lang}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+    <button name="format" value="html" class="primary">{{t "web.view"}}</button>
+    <button formmethod="post" formtarget="_self" name="format" value="html">{{t "web.save_report"}}</button>
+    <span class="muted">{{t "web.exports"}} :</span>
+    <button name="format" value="csv">CSV</button>
+    <button name="format" value="json">JSON</button>
+  </form>
+</section>
 
 <div class="stats">
   <div class="stat"><b>{{len .Observations}}</b><span>{{t "col.devices"}}</span></div>
