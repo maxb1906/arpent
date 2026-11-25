@@ -15,8 +15,8 @@ import (
 	"github.com/maxb1906/arpent/internal/i18n"
 )
 
-// Formats d'export disponibles.
-var Formats = []string{"html", "csv", "json"}
+// Formats d'export disponibles (« pdf » passe par un navigateur, voir PDF).
+var Formats = []string{"html", "pdf", "csv", "json"}
 
 // HTML écrit le rapport autonome dans la langue de tr.
 func HTML(w io.Writer, d *Data, tr *i18n.Translator) error {
@@ -222,6 +222,8 @@ func ContentType(format string) string {
 		return "text/csv; charset=utf-8"
 	case "json":
 		return "application/json"
+	case "pdf":
+		return "application/pdf"
 	}
 	return "text/html; charset=utf-8"
 }

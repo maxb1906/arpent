@@ -16,7 +16,9 @@
     <label class="inline-label">{{t "web.report_lang"}}
       <select name="lang">{{range .Langs}}<option value="{{.}}"{{if $.Data.ReportLang}}{{if eq . $.Data.ReportLang}} selected{{end}}{{else if eq . $.Lang}} selected{{end}}>{{.}}</option>{{end}}</select></label>
     <button name="format" value="html" class="primary">{{t "web.view"}}</button>
+    <button name="format" value="pdf" title="{{t "web.pdf_hint"}}">{{t "web.pdf"}}</button>
     <button formmethod="post" formtarget="_self" name="format" value="html">{{t "web.save_report"}}</button>
+    <button formmethod="post" formtarget="_self" name="format" value="pdf">{{t "web.save_report"}} (PDF)</button>
     <span class="muted">{{t "web.exports"}} :</span>
     <button name="format" value="csv">CSV</button>
     <button name="format" value="json">JSON</button>

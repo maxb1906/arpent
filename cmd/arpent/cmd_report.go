@@ -50,6 +50,17 @@ func cmdReport(e *env, args []string) int {
 	}
 	applyIssuer(e, d)
 	tr := e.bundle.Translator(rl)
+	if *format == "pdf" {
+		path := *out
+		if path == "" || path == "-" {
+			path = report.Path(s, d.Audit, "pdf")
+		}
+		if err := report.PDFFile(e.ctx, path, d, tr); err != nil {
+			return e.fail(err)
+		}
+		fmt.Fprintln(e.stdout, e.T("report.written", "path", path))
+		return 0
+	}
 	if *out == "-" {
 		if err := report.Write(e.stdout, *format, d, tr); err != nil {
 			return e.fail(err)

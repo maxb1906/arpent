@@ -523,6 +523,17 @@ func (s *Server) reportView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer site.Close()
+	if format == "pdf" {
+		b, err := report.PDF(r.Context(), d, tr)
+		if err != nil {
+			s.fail(w, r, http.StatusServiceUnavailable, errors.New(s.opt.Bundle.Translator(s.lang(r)).T("web.pdf_unavailable", "error", err.Error())))
+			return
+		}
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Header().Set("Content-Disposition", `inline; filename="`+report.FileName(d.Audit, "pdf")+`"`)
+		w.Write(b)
+		return
+	}
 	w.Header().Set("Content-Type", report.ContentType(format))
 	if format != "html" || r.FormValue("download") == "1" {
 		w.Header().Set("Content-Disposition", `attachment; filename="`+report.FileName(d.Audit, format)+`"`)
@@ -542,7 +553,15 @@ func (s *Server) reportSave(w http.ResponseWriter, r *http.Request) {
 	}
 	defer site.Close()
 	path := report.Path(site, d.Audit, format)
-	if err := report.WriteFile(path, format, d, tr); err != nil {
+	if format == "pdf" {
+		err = report.PDFFile(r.Context(), path, d, tr)
+		if err != nil {
+			err = errors.New(s.opt.Bundle.Translator(s.lang(r)).T("web.pdf_unavailable", "error", err.Error()))
+		}
+	} else {
+		err = report.WriteFile(path, format, d, tr)
+	}
+	if err != nil {
 		s.fail(w, r, 500, err)
 		return
 	}

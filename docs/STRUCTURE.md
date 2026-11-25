@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étapes 0 à 10 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (à faire par l'utilisateur, voir `docs/TEST-HOMELAB.md`).
+> Statut : **étapes 0 à 10 et 12 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -228,7 +228,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 
 **Version complète (après la v1.0)** — détail au § 11 :
 
-- [ ] **Étape 12 — PDF en un clic** : détection d'Edge/Chrome, génération via `chromedp`, en-têtes/pieds de page, repli impression.
+- [x] **Étape 12 — PDF en un clic** : détection d'Edge/Chrome, génération via `chromedp`, en-têtes/pieds de page, repli impression.
 - [ ] **Étape 13 — Rapports à la marque** : profil émetteur, logo/couleurs, modèles surchargeables, types de rapport, recommandations éditables.
 - [ ] **Étape 14 — Comparaison libre et historique** : diff entre deux audits au choix, frise par appareil, graphique d'évolution.
 - [ ] **Étape 15 — Multi-sites** : portefeuille, rappels d'audit, export/import `.arpent`, recherche transverse.
@@ -344,3 +344,5 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Type d'appareil : `assets/signatures.yaml` (≈ 80 signatures pondérées : fabricant OUI, noms, ports, titres et serveurs HTTP, UPnP, mDNS, SNMP, NetBIOS, MAC aléatoire) ; le type au score le plus élevé (≥ 3) est retenu, avec un libellé produit (ex. « QNAP NAS », « Proxmox VE »). 20 types traduits. La devinette est faite à la fin de `audit.Run` (et non via le stockage) pour éviter un cycle d'imports. Le type et le produit apparaissent dans l'inventaire, la fiche, le rapport et la CLI ; la fiche affiche une section « Protocoles de découverte ».
 - **2026-11-25** — Étape 11 (préparée, non cochée) : `config.yaml` (`internal/config`) — technicien, profil et langue de rapport par défaut, débit, fréquence d'audit, émetteur des rapports (nom, société, coordonnées, mentions, couleur, logo lu dans `arpent-data/` et intégré en data: URI, 512 Kio max., chemins hors du dossier refusés) ; page « Réglages » dans l'interface et commande `arpent config`. La lecture de la config ne crée jamais le dossier de données (`config.Resolve`). Rappel légal sur l'accueil, en plus de la confirmation au premier audit. README FR/EN réécrits pour la v1.0 (démarrage, SmartScreen, CLI, limites, contribution).
 - **2026-11-25** — Publication : `.goreleaser.yaml` (GoReleaser v2.20.1 épinglé ; zip pour Windows avec `arpent.exe`, LICENSE et README ; `SHA256SUMS`) + workflow `release.yml` déclenché par un tag `v*`. Le CI exécute GoReleaser à blanc (`--snapshot --skip=publish`) à chaque push pour valider la configuration. **Pas de tag v1.0.0 posé** : le cadrage exige d'abord le test complet sur le LAN du homelab, impossible depuis la devbox (§ 8) ; liste de contrôle dans `docs/TEST-HOMELAB.md`.
+- **2026-11-25** — Étape 12 terminée. `report.PDF` : le même modèle HTML que le rapport est écrit dans un dossier temporaire puis imprimé par Edge/Chrome/Chromium/Brave sans fenêtre via `chromedp` v0.22.1 (nouvelle API générique `Run`/`Do`/`PrintToPDF`), A4, fonds imprimés, en-tête (site, titre, date) et pied de page (mention de confidentialité, « Page n / total ») traduits. Profil de navigateur jetable (`UserDataDir` temporaire, supprimé ensuite) : rien n'est laissé sur le PC du client. Détection : chemins Windows (`Program Files`, `Program Files (x86)`, `LocalAppData`), macOS, `PATH` Linux ; `ARPENT_BROWSER` pour en imposer un. Délai global de 2 min.
+- **2026-11-25** — Repli : si aucun navigateur n'est trouvé ou si l'impression échoue, l'interface affiche un message qui renvoie vers le rapport HTML et « Imprimer / PDF » du navigateur. Boutons « PDF » (affichage) et « Enregistrer (PDF) » sur la page d'audit ; `arpent report --format pdf`. Pas de navigateur sur la devbox (installation refusée) : le test PDF y est ignoré mais il est **exigé** en CI (`ARPENT_REQUIRE_BROWSER=1`) sur Ubuntu et Windows, où Chrome et Edge sont présents.
