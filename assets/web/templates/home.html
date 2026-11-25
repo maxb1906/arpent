@@ -1,13 +1,23 @@
 {{define "title"}}{{t "web.sites"}}{{end}}
 {{define "content"}}
 <p class="legal small">{{t "web.legal_banner"}}</p>
+{{if .Data.Imported}}<p class="notice">{{t "web.imported" "site" .Data.Imported "added" .Data.Added}}</p>{{end}}
 <section class="card">
-  <h1>{{t "web.sites"}}</h1>
+  <div class="row between"><h1>{{t "web.portfolio"}}</h1>{{if .Data.Overdue}}<span class="tag warn">{{t "web.overdue_count" "count" .Data.Overdue}}</span>{{end}}</div>
   {{with .Data.Sites}}
-  <table class="list">
-    <thead><tr><th>{{t "col.site"}}</th><th>{{t "col.audits"}}</th><th>{{t "col.last_audit"}}</th></tr></thead>
+  <table class="list sortable">
+    <thead><tr><th>{{t "col.site"}}</th><th data-sort="num">{{t "col.audits"}}</th><th>{{t "col.last_audit"}}</th><th data-sort="num">{{t "col.devices"}}</th><th data-sort="num">{{t "web.open_issues"}}</th><th>{{t "web.trend"}}</th><th>{{t "web.next_audit"}}</th><th></th></tr></thead>
     <tbody>
-    {{range .}}<tr><td><a href="/sites/{{.Slug}}">{{.Name}}</a></td><td>{{.Audits}}</td><td>{{datetime .LastAudit}}</td></tr>{{end}}
+    {{range .}}<tr{{if .Overdue $.Data.Now}} class="overdue"{{end}}>
+      <td><a href="/sites/{{.Slug}}"><b>{{.Name}}</b></a>{{if .Address}}<br><span class="small muted">{{.Address}}</span>{{end}}</td>
+      <td data-value="{{.Audits}}">{{.Audits}}</td>
+      <td>{{if .LastID}}<a href="/sites/{{.Slug}}/audits/{{.LastID}}">{{date .LastAudit}}</a>{{else}}—{{end}}</td>
+      <td data-value="{{.Devices}}">{{if .LastID}}{{.Devices}}{{end}}</td>
+      <td data-value="{{add (add .Critical .Critical) .Warning}}">{{if .LastID}}{{with .Critical}}<span class="level critical">{{.}}</span>{{end}}{{with .Warning}}<span class="level warning">{{.}}</span>{{end}}{{if not (or .Critical .Warning)}}<span class="tag ok">0</span>{{end}}{{end}}</td>
+      <td>{{with .Trend}}<span class="trend {{.}}" title="{{t (print "web.trend." .)}}">{{t (print "web.trend_icon." .)}} {{t (print "web.trend." .)}}</span>{{end}}</td>
+      <td>{{if not .Due.IsZero}}{{if .Overdue $.Data.Now}}<span class="tag warn">{{t "web.overdue_since" "date" (date .Due)}}</span>{{else}}{{date .Due}}{{end}}{{else}}<span class="muted">—</span>{{end}}</td>
+      <td><a class="small" href="/sites/{{.Slug}}/export" title="{{t "web.export_hint"}}">{{t "web.export"}}</a></td>
+    </tr>{{end}}
     </tbody>
   </table>
   {{else}}
@@ -21,5 +31,13 @@
     <button class="primary">{{t "web.create"}}</button>
   </form>
   <p class="muted small">{{t "web.data_dir" "dir" .Data.DataDir}}</p>
+</section>
+<section class="card">
+  <h2>{{t "web.import"}}</h2>
+  <form method="post" action="/import" enctype="multipart/form-data" class="row">
+    <input type="file" name="archive" accept=".arpent,application/zip" required>
+    <button>{{t "web.import_button"}}</button>
+  </form>
+  <p class="hint">{{t "web.import_hint"}}</p>
 </section>
 {{end}}

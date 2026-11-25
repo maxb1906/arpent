@@ -1,0 +1,26 @@
+{{define "title"}}{{t "web.search"}}{{end}}
+{{define "crumbs"}}<a href="/">{{t "web.sites"}}</a> › {{t "web.search"}}{{end}}
+{{define "content"}}
+{{with .Data}}
+<h1>{{t "web.search"}}</h1>
+<section class="card">
+  <form method="get" action="/search" class="row"><input type="search" name="q" value="{{.Q}}" placeholder="{{t "web.search_placeholder"}}" autofocus><button class="primary">{{t "web.search"}}</button></form>
+  <p class="hint">{{t "web.search_hint"}}</p>
+</section>
+{{if .Q}}
+<section class="card">
+  <h2>{{t "web.search_results" "count" (len .Hits) "q" .Q}}</h2>
+  {{if .Hits}}
+  <table class="list"><thead><tr><th>{{t "col.site"}}</th><th>{{t "report.device"}}</th><th>{{t "report.port"}}</th><th>{{t "web.match"}}</th></tr></thead><tbody>
+  {{range .Hits}}<tr>
+    <td><a href="/sites/{{.Site.Slug}}">{{.Site.Name}}</a></td>
+    <td><a href="/sites/{{.Site.Slug}}/devices/{{.DeviceID}}?audit={{.AuditID}}">{{.Name}}</a>{{if ne .Name .IP}} <span class="mono small dim">{{.IP}}</span>{{end}}</td>
+    <td>{{if .Port}}<span class="port">{{.Port}}/{{.Proto}}</span>{{end}}</td>
+    <td><span class="tag">{{t (print "web.field." .Field)}}</span> {{if eq .Field "finding"}}{{t (print "rule." .Value ".title") "port" .Port}}{{else}}<span class="mono small">{{.Value}}</span>{{end}}</td>
+  </tr>{{end}}
+  </tbody></table>
+  {{else}}<p class="muted">{{t "web.search_none"}}</p>{{end}}
+</section>
+{{end}}
+{{end}}
+{{end}}

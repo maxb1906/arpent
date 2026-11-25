@@ -76,7 +76,7 @@ type command struct {
 var commands = map[string]command{}
 
 // order fixe l'ordre d'affichage des commandes dans l'aide.
-var order = []string{"ui", "scan", "sites", "audits", "show", "compare", "report", "annotate", "config", "templates", "discover", "ports", "interfaces", "arp", "hello", "version", "help"}
+var order = []string{"ui", "scan", "sites", "audits", "show", "compare", "report", "annotate", "search", "export", "import", "config", "templates", "discover", "ports", "interfaces", "arp", "hello", "version", "help"}
 
 func init() {
 	commands["hello"] = command{run: cmdHello}
@@ -96,6 +96,9 @@ func init() {
 	commands["compare"] = command{run: cmdCompare}
 	commands["config"] = command{run: cmdConfig}
 	commands["templates"] = command{run: cmdTemplates}
+	commands["export"] = command{run: cmdExport}
+	commands["import"] = command{run: cmdImport}
+	commands["search"] = command{run: cmdSearch}
 }
 
 func usage(e *env, w io.Writer) {

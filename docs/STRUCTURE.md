@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étapes 0 à 10 et 12 à 14 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`).
+> Statut : **étapes 0 à 10 et 12 à 15 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -231,7 +231,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 - [x] **Étape 12 — PDF en un clic** : détection d'Edge/Chrome, génération via `chromedp`, en-têtes/pieds de page, repli impression.
 - [x] **Étape 13 — Rapports à la marque** : profil émetteur, logo/couleurs, modèles surchargeables, types de rapport, recommandations éditables.
 - [x] **Étape 14 — Comparaison libre et historique** : diff entre deux audits au choix, frise par appareil, graphique d'évolution.
-- [ ] **Étape 15 — Multi-sites** : portefeuille, rappels d'audit, export/import `.arpent`, recherche transverse.
+- [x] **Étape 15 — Multi-sites** : portefeuille, rappels d'audit, export/import `.arpent`, recherche transverse.
 - [ ] **Étape 16 — Mode avancé Npcap** : détection Npcap + admin, ARP brut, scan SYN, écoute passive.
 - [ ] **Étape 17 — Signature de code** : candidature SignPath Foundation, intégration dans GitHub Actions, `CODE_SIGNING_POLICY.md`, première version signée.
 
@@ -353,3 +353,6 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — PDF : sur le runner Ubuntu, Edge était trouvé en premier mais plantait (sandbox SUID mal installée) ; désormais tous les navigateurs trouvés sont essayés dans l'ordre (Chrome d'abord sous Linux), erreurs cumulées.
 - **2026-11-25** — Étape 14 terminée. Comparaison libre : page « Comparer deux audits » (deux listes déroulantes, premier → dernier par défaut) et `arpent compare --site … [--from N] [--to M]`, calculées à la volée par `diff.Between` (même logique que le diff enregistré). Frise par appareil (`diff.Timeline`) : première apparition, ports ouverts/fermés, versions et certificats modifiés, changements d'IP, disparition (seulement si l'audit couvrait son adresse) et réapparition.
 - **2026-11-25** — Graphique d'évolution du site (page du site, dès deux audits) : trois petits graphiques d'une série chacun (appareils, services exposés, points critiques + attention) plutôt qu'un graphique à plusieurs échelles, SVG généré côté serveur sans bibliothèque, infobulle par point, dernière valeur étiquetée, tableau des valeurs dépliable. Couleur de série validée avec le script de la compétence dataviz (`#1a6aa8` en clair, `#3d8fd0` en sombre : bande de luminosité, chroma, contraste OK). Rendu non vérifié visuellement (pas de navigateur sur la devbox) : à regarder pendant le test homelab.
+- **2026-11-25** — Étape 15 terminée. Tableau de bord du portefeuille (accueil) : par site, nombre d'audits, date du dernier, appareils, points critiques/attention ouverts, tendance par rapport à l'audit précédent, prochain audit ; sites en retard en tête et surlignés. Rappel d'audit : fréquence par site (migration 4 : `site.reminder_days`, vide = valeur des réglages, 0 = aucun) ; `arpent sites` affiche aussi l'échéance.
+- **2026-11-25** — Export/import `.arpent` : zip avec `manifest.json`, copie cohérente de la base (`VACUUM INTO`) et rapports. Import : création du site, ou **fusion** si le site existe — chaque audit a désormais un identifiant stable (`audit.uid`, migration 4) ; les audits absents sont copiés via `ATTACH DATABASE` avec correspondance des appareils par identité (annotations complétées, « connu » conservé), observations, services, points d'attention et recommandations ; les changements sont ensuite recalculés dans l'ordre chronologique (`diff.RecomputeAll`). `PreviousAudit` suit désormais la date et non l'identifiant. Protections : manifeste obligatoire, taille maximale, noms de rapports sans chemin (zip slip testé), base de l'archive ouverte et migrée avant fusion. UI : export par site, import par fichier ; CLI : `arpent export|import`.
+- **2026-11-25** — Recherche transverse (`store.Search`, champ dans l'en-tête de l'UI, `arpent search …`) sur le dernier audit de chaque site : IP, MAC, noms, fabricant, annotations, type, services, produits/versions, titres et serveurs web, certificats, SMB (« smbv1 »), SSH, bannières, identifiants de règles. Comparaison tolérante (casse, espaces et ponctuation ignorés : « SMB v1 » = « SMBv1 », `00-11-22` = `00:11:22`).

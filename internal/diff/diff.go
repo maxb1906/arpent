@@ -206,3 +206,24 @@ func Key(c store.Change) string {
 	}
 	return strconv.Itoa(c.Port) + "/" + c.Proto
 }
+
+// RecomputeAll recalcule les changements de tous les audits terminés du site
+// (après un import, l'ordre chronologique a pu changer).
+func RecomputeAll(s *store.Site) error {
+	ids, err := s.DoneAuditsChrono()
+	if err != nil {
+		return err
+	}
+	for i, id := range ids {
+		if i == 0 {
+			if err := s.SaveChanges(id, 0, nil); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := Apply(s, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}

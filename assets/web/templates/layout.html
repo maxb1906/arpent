@@ -15,6 +15,7 @@
   <nav class="crumbs">{{block "crumbs" .}}{{end}}</nav>
   <div class="tools">
     {{if .Running}}<a class="pill running" href="/sites/{{.Running.Site}}/audits/{{.Running.AuditID}}">● {{t "web.audit_running"}}</a>{{end}}
+    <form method="get" action="/search" class="inline search"><input type="search" name="q" placeholder="{{t "web.search_placeholder"}}" aria-label="{{t "web.search"}}"></form>
     <a href="/settings">{{t "web.settings"}}</a>
     <form method="post" action="/lang" class="inline">
       <input type="hidden" name="back" value="{{.Path}}">

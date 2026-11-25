@@ -169,11 +169,53 @@ func (s *Site) UpdateInfo(address, contact, notes string) error {
 	return err
 }
 
-// SiteSummary résume un site pour la liste des sites.
+// SiteSummary résume un site pour le tableau de bord.
 type SiteSummary struct {
 	SiteInfo
-	Audits    int
-	LastAudit time.Time
+	Audits       int
+	LastAudit    time.Time
+	LastID       int64
+	Devices      int // dernier audit
+	Critical     int // points critiques du dernier audit
+	Warning      int
+	PrevFindings int // critiques + attention de l'audit précédent (-1 : aucun)
+	ReminderDays int // 0 : pas de rappel
+	reminderSet  bool
+}
+
+// Findings renvoie critiques + attention du dernier audit.
+func (s SiteSummary) Findings() int { return s.Critical + s.Warning }
+
+// Trend compare au précédent audit : "up", "down", "same" ou "".
+func (s SiteSummary) Trend() string {
+	switch {
+	case s.PrevFindings < 0 || s.LastID == 0:
+		return ""
+	case s.Findings() > s.PrevFindings:
+		return "up"
+	case s.Findings() < s.PrevFindings:
+		return "down"
+	}
+	return "same"
+}
+
+// Due renvoie la date du prochain audit souhaité (zéro : pas de rappel).
+func (s SiteSummary) Due() time.Time {
+	if s.ReminderDays <= 0 || s.LastAudit.IsZero() {
+		return time.Time{}
+	}
+	return s.LastAudit.AddDate(0, 0, s.ReminderDays)
+}
+
+// Overdue indique un audit en retard.
+func (s SiteSummary) Overdue(now time.Time) bool { d := s.Due(); return !d.IsZero() && now.After(d) }
+
+// WithDefaultReminder applique la fréquence par défaut si le site n'en a pas.
+func (s SiteSummary) WithDefaultReminder(days int) SiteSummary {
+	if !s.reminderSet {
+		s.ReminderDays = days
+	}
+	return s
 }
 
 // ListSites liste les sites de dataDir, triés par nom.
@@ -194,18 +236,49 @@ func ListSites(dataDir string) ([]SiteSummary, error) {
 		if err != nil {
 			continue
 		}
-		info, err := s.Info()
-		if err == nil {
-			sum := SiteSummary{SiteInfo: info}
-			var last sql.NullString
-			s.db.QueryRow(`SELECT COUNT(*), MAX(started_at) FROM audit WHERE status = 'done'`).Scan(&sum.Audits, &last)
-			if last.Valid {
-				sum.LastAudit, _ = time.Parse(TimeFormat, last.String)
-			}
+		if sum, err := s.Summary(); err == nil {
 			out = append(out, sum)
 		}
 		s.Close()
 	}
 	sort.Slice(out, func(a, b int) bool { return strings.ToLower(out[a].Name) < strings.ToLower(out[b].Name) })
 	return out, nil
+}
+
+// Summary calcule le résumé du site pour le tableau de bord.
+func (s *Site) Summary() (SiteSummary, error) {
+	info, err := s.Info()
+	if err != nil {
+		return SiteSummary{}, err
+	}
+	sum := SiteSummary{SiteInfo: info, PrevFindings: -1}
+	var rem sql.NullInt64
+	s.db.QueryRow(`SELECT reminder_days FROM site WHERE id = 1`).Scan(&rem)
+	sum.ReminderDays, sum.reminderSet = int(rem.Int64), rem.Valid
+	s.db.QueryRow(`SELECT COUNT(*) FROM audit WHERE status = 'done'`).Scan(&sum.Audits)
+	if sum.LastID, err = s.LatestAudit(); err != nil || sum.LastID == 0 {
+		return sum, err
+	}
+	a, err := s.GetAudit(sum.LastID)
+	if err != nil {
+		return sum, err
+	}
+	sum.LastAudit, sum.Devices = a.Started, a.Devices
+	counts, _ := s.FindingCountsByAudit()
+	sum.Critical, sum.Warning = counts[a.ID]["critical"], counts[a.ID]["warning"]
+	if prev, _ := s.PreviousAudit(a.ID); prev != 0 {
+		sum.PrevFindings = counts[prev]["critical"] + counts[prev]["warning"]
+	}
+	return sum, nil
+}
+
+// SetReminder fixe la fréquence d'audit souhaitée du site (jours) ; une
+// valeur négative revient à la valeur par défaut des préférences.
+func (s *Site) SetReminder(days int) error {
+	var v any
+	if days >= 0 {
+		v = days
+	}
+	_, err := s.db.Exec(`UPDATE site SET reminder_days = ? WHERE id = 1`, v)
+	return err
 }

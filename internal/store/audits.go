@@ -65,8 +65,8 @@ func (s *Site) BeginAudit(m AuditMeta) (int64, error) {
 	if m.Mode == "" {
 		m.Mode = "standard"
 	}
-	r, err := s.db.Exec(`INSERT INTO audit (started_at, status, technician, ranges, profile, mode, targets, authorized_at, authorized_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	r, err := s.db.Exec(`INSERT INTO audit (started_at, status, technician, ranges, profile, mode, targets, authorized_at, authorized_by, uid)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, lower(hex(randomblob(16))))`,
 		ts(time.Now()), StatusRunning, m.Technician, m.Ranges, m.Profile, m.Mode, m.Targets, ts(m.AuthorizedAt), m.AuthorizedBy)
 	if err != nil {
 		return 0, err
@@ -214,7 +214,9 @@ func (s *Site) LatestAudit() (int64, error) {
 // PreviousAudit renvoie l'audit terminé qui précède id (0 s'il n'y en a pas).
 func (s *Site) PreviousAudit(id int64) (int64, error) {
 	var prev sql.NullInt64
-	err := s.db.QueryRow(`SELECT id FROM audit WHERE status = 'done' AND id < ? ORDER BY id DESC LIMIT 1`, id).Scan(&prev)
+	err := s.db.QueryRow(`SELECT p.id FROM audit p, audit c WHERE c.id = ? AND p.status = 'done' AND p.id <> c.id
+		AND (p.started_at < c.started_at OR (p.started_at = c.started_at AND p.id < c.id))
+		ORDER BY p.started_at DESC, p.id DESC LIMIT 1`, id).Scan(&prev)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil
 	}

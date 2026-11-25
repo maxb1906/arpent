@@ -1,9 +1,11 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -261,6 +263,41 @@ func TestAuditFlow(t *testing.T) {
 		t.Errorf("frise absente (%d)", code)
 	}
 	noRawKeys(t, "frise", body)
+
+	// Portefeuille, recherche, export puis import (fusion sans doublon).
+	code, body = h.get("/")
+	if code != 200 || !strings.Contains(body, "Site portfolio") || !strings.Contains(body, "/sites/pharmacie-test/export") {
+		t.Errorf("tableau de bord : %d", code)
+	}
+	noRawKeys(t, "portefeuille", body)
+	code, body = h.get("/search?q=127.0.0.1")
+	if code != 200 || !strings.Contains(body, "Pharmacie Test") {
+		t.Errorf("recherche : %d", code)
+	}
+	noRawKeys(t, "recherche", body)
+	resp, err = h.client.Get(h.base + "/sites/pharmacie-test/export")
+	if err != nil {
+		t.Fatal(err)
+	}
+	arc, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(resp.Header.Get("Content-Disposition"), ".arpent") || len(arc) < 1000 {
+		t.Fatalf("export : %v %d", resp.Header, len(arc))
+	}
+	var mb bytes.Buffer
+	mw := multipart.NewWriter(&mb)
+	fw, _ := mw.CreateFormFile("archive", "pharmacie-test.arpent")
+	fw.Write(arc)
+	mw.Close()
+	resp, err = h.client.Post(h.base+"/import", mw.FormDataContentType(), &mb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b2, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(b2), "0 audit(s) added") {
+		t.Errorf("import : %s", resp.Request.URL)
+	}
 
 	if code, body = h.get("/sites/inconnu"); code != 404 {
 		t.Errorf("site inconnu : %d", code)

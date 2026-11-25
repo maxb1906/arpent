@@ -110,4 +110,10 @@ CREATE TABLE recommendation (
 	text     TEXT NOT NULL,
 	PRIMARY KEY (audit_id, rule)
 );`,
+	// 4 — multi-sites : identifiant stable des audits (fusion à l'import) et
+	// fréquence d'audit souhaitée par site (NULL : valeur par défaut).
+	`ALTER TABLE audit ADD COLUMN uid TEXT;
+UPDATE audit SET uid = lower(hex(randomblob(16))) WHERE uid IS NULL;
+CREATE UNIQUE INDEX audit_uid ON audit(uid);
+ALTER TABLE site ADD COLUMN reminder_days INTEGER;`,
 }

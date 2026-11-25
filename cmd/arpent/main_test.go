@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -128,6 +129,17 @@ func TestScanSaveAndShow(t *testing.T) {
 	}
 	if code, out = runCLI(t, "--lang", "en", "--data", data, "compare", "--site", "Café Test"); code != 0 || !strings.Contains(out, "audit #1 and audit #2") {
 		t.Errorf("compare : %d %s", code, out)
+	}
+	arc := filepath.Join(t.TempDir(), "cafe.arpent")
+	if code, out = runCLI(t, "--lang", "en", "--data", data, "export", "--site", "Café Test", "--out", arc); code != 0 {
+		t.Errorf("export : %d %s", code, out)
+	}
+	data2 := t.TempDir()
+	if code, out = runCLI(t, "--lang", "en", "--data", data2, "import", arc); code != 0 || !strings.Contains(out, "2 audit(s) added") {
+		t.Errorf("import : %d %s", code, out)
+	}
+	if code, out = runCLI(t, "--lang", "en", "--data", data2, "search", "Devbox"); code != 0 || !strings.Contains(out, "Café Test") {
+		t.Errorf("search : %d %s", code, out)
 	}
 	if code, _ = runCLI(t, "--data", data, "show", "--site", "absent"); code != 1 {
 		t.Errorf("site absent : code %d", code)

@@ -2,7 +2,7 @@
 {{define "crumbs"}}<a href="/">{{t "web.sites"}}</a> › {{.Data.Site.Name}}{{end}}
 {{define "content"}}
 {{with .Data}}
-<h1>{{.Site.Name}}</h1>
+<div class="row between"><h1>{{.Site.Name}}</h1><a href="/sites/{{.Site.Slug}}/export">⇩ {{t "web.export"}} (.arpent)</a></div>
 {{if .Error}}<p class="alert">{{t .Error}}</p>{{end}}
 <div class="grid2">
 <section class="card">
@@ -40,6 +40,8 @@
     <label>{{t "web.address"}}<input name="address" value="{{.Site.Address}}"></label>
     <label>{{t "web.contact"}}<input name="contact" value="{{.Site.Contact}}"></label>
     <label>{{t "web.notes"}}<textarea name="notes" rows="3">{{.Site.Notes}}</textarea></label>
+    <label>{{t "web.reminder_site"}}<input type="number" name="reminder_days" min="0" max="3650" value="{{.Summary.ReminderDays}}" placeholder="{{.DefaultReminder}}">
+      <span class="hint">{{t "web.reminder_site_hint"}}{{if not .Summary.Due.IsZero}} {{t "web.next_audit_on" "date" (date .Summary.Due)}}{{end}}</span></label>
     <button>{{t "web.save"}}</button>
   </form>
 </section>

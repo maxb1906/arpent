@@ -6,6 +6,7 @@ import (
 	"errors"
 	"html/template"
 	"io/fs"
+	"log"
 	"net/http"
 	"net/url"
 	"slices"
@@ -48,6 +49,9 @@ func (s *Server) routes() {
 	m.HandleFunc("POST /sites/{slug}/audits/{id}/customize", s.customize)
 	m.HandleFunc("GET /sites/{slug}/devices/{id}", s.devicePage)
 	m.HandleFunc("GET /sites/{slug}/compare", s.compare)
+	m.HandleFunc("GET /sites/{slug}/export", s.exportSite)
+	m.HandleFunc("POST /import", s.importSite)
+	m.HandleFunc("GET /search", s.search)
 	m.HandleFunc("POST /sites/{slug}/devices/{id}", s.annotate)
 	m.HandleFunc("POST /sites/{slug}/devices/{id}/known", s.setKnown)
 	s.mux = m
@@ -67,7 +71,63 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, 500, err)
 		return
 	}
-	s.render(w, r, "home", map[string]any{"Sites": sites, "DataDir": s.opt.DataDir})
+	cfg, _ := config.Load(s.opt.DataDir)
+	now := time.Now()
+	overdue := 0
+	for i := range sites {
+		sites[i] = sites[i].WithDefaultReminder(cfg.ReminderDays)
+		if sites[i].Overdue(now) {
+			overdue++
+		}
+	}
+	// Les sites en retard d'abord, puis par nom.
+	sort.SliceStable(sites, func(i, j int) bool { return sites[i].Overdue(now) && !sites[j].Overdue(now) })
+	s.render(w, r, "home", map[string]any{"Sites": sites, "DataDir": s.opt.DataDir, "Now": now, "Overdue": overdue,
+		"Imported": r.URL.Query().Get("imported"), "Added": r.URL.Query().Get("added")})
+}
+
+func (s *Server) exportSite(w http.ResponseWriter, r *http.Request) {
+	site, err := s.openSite(r)
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	defer site.Close()
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+site.Slug+"_"+time.Now().Format("2006-01-02")+store.ArchiveExt+`"`)
+	if err := site.Export(w); err != nil {
+		log.Printf("web: export %s : %v", site.Slug, err)
+	}
+}
+
+func (s *Server) importSite(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, store.MaxArchiveDB)
+	f, hdr, err := r.FormFile("archive")
+	if err != nil {
+		s.fail(w, r, 400, err)
+		return
+	}
+	defer f.Close()
+	res, err := store.Import(s.opt.DataDir, f, hdr.Size)
+	if err != nil {
+		s.fail(w, r, 400, err)
+		return
+	}
+	if site, err := store.OpenSite(s.opt.DataDir, res.Slug); err == nil {
+		diff.RecomputeAll(site)
+		site.Close()
+	}
+	http.Redirect(w, r, "/?imported="+url.QueryEscape(res.Name)+"&added="+strconv.Itoa(res.Added), http.StatusSeeOther)
+}
+
+func (s *Server) search(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	hits, err := store.Search(s.opt.DataDir, q)
+	if err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	s.render(w, r, "search", map[string]any{"Q": q, "Hits": hits})
 }
 
 func (s *Server) createSite(w http.ResponseWriter, r *http.Request) {
@@ -128,8 +188,9 @@ func (s *Server) site(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	charts, table := s.evolution(site, audits, s.lang(r))
+	summary, _ := site.Summary()
 	s.render(w, r, "site", map[string]any{
-		"Charts": charts, "Evolution": table,
+		"Charts": charts, "Evolution": table, "Summary": summary.WithDefaultReminder(cfg.ReminderDays), "DefaultReminder": cfg.ReminderDays,
 		"Site": info, "Audits": audits, "Authorized": authorized, "AuthorizedAt": authAt,
 		"Subnets": subnets, "Ranges": strings.Join(ranges, ", "), "Profiles": portscan.Profiles, "DefaultProfile": cfg.DefaultProfile,
 		"Technician": technician, "Error": r.URL.Query().Get("error"),
@@ -144,6 +205,16 @@ func (s *Server) siteInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	defer site.Close()
 	if err := site.UpdateInfo(r.FormValue("address"), r.FormValue("contact"), r.FormValue("notes")); err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	days := -1 // vide : valeur par défaut des préférences
+	if v := strings.TrimSpace(r.FormValue("reminder_days")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			days = n
+		}
+	}
+	if err := site.SetReminder(days); err != nil {
 		s.fail(w, r, 500, err)
 		return
 	}

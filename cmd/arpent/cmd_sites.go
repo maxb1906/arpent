@@ -45,13 +45,21 @@ func cmdSites(e *env, args []string) int {
 		return 0
 	}
 	tw := tabwriter.NewWriter(e.stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, e.T("col.site")+"\t"+e.T("col.slug")+"\t"+e.T("col.audits")+"\t"+e.T("col.last_audit"))
+	fmt.Fprintln(tw, strings.Join([]string{e.T("col.site"), e.T("col.slug"), e.T("col.audits"), e.T("col.last_audit"), e.T("col.devices"), e.T("web.open_issues"), e.T("web.next_audit")}, "\t"))
+	now := time.Now()
 	for _, s := range sites {
-		last := "—"
+		s = s.WithDefaultReminder(e.config().ReminderDays)
+		last, due := "—", "—"
 		if !s.LastAudit.IsZero() {
 			last = s.LastAudit.Local().Format("2006-01-02 15:04")
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%d\t%s\n", s.Name, s.Slug, s.Audits, last)
+		if d := s.Due(); !d.IsZero() {
+			due = d.Local().Format("2006-01-02")
+			if s.Overdue(now) {
+				due = e.T("web.overdue_since", "date", due)
+			}
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%d\t%s\t%d\t%d\t%s\n", s.Name, s.Slug, s.Audits, last, s.Devices, s.Findings(), due)
 	}
 	tw.Flush()
 	return 0
