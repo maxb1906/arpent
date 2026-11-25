@@ -1,0 +1,58 @@
+# Signature de l'exe Windows par SignPath Foundation (§ 11.6).
+# Inactif tant que la variable de dépôt SIGNPATH_ORGANIZATION_ID n'est pas
+# définie (Settings → Secrets and variables → Actions) : voir docs/SIGNPATH.md.
+name: Sign
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de la release à signer (ex. v1.0.0)"
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  sign:
+    if: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Télécharger l'archive Windows non signée
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*windows_amd64.zip' --pattern SHA256SUMS --dir release
+          mkdir unsigned && unzip -q release/*windows_amd64.zip -d unsigned
+      - name: Exe à signer (artefact)
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: arpent-unsigned
+          path: unsigned/arpent.exe
+          if-no-files-found: error
+      - name: Demande de signature SignPath (approbation manuelle)
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'arpent' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ steps.upload.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+      - name: Remplacer l'archive Windows et SHA256SUMS dans la release
+        run: |
+          zip_name=$(basename release/*windows_amd64.zip)
+          cp signed/arpent.exe unsigned/arpent.exe
+          (cd unsigned && zip -q -r "../$zip_name" .)
+          sum=$(sha256sum "$zip_name" | cut -d' ' -f1)
+          grep -v " $zip_name\$" release/SHA256SUMS > SHA256SUMS
+          echo "$sum  $zip_name" >> SHA256SUMS
+          sort -k2 -o SHA256SUMS SHA256SUMS
+          gh release upload "$TAG" "$zip_name" SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"

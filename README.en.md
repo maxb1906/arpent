@@ -33,7 +33,7 @@ Scanning a network without permission is **illegal**, in Belgium and elsewhere. 
 
 All data lives in the `arpent-data/` folder **next to the executable**: preferences (`config.yaml`) and one folder per site (`sites/<site>/site.db` and `rapports/`). Nothing is written to the registry or `%APPDATA%`.
 
-> **Windows SmartScreen / antivirus**: the executable is not signed yet. Windows may show "Windows protected your PC": click "More info" then "Run anyway". A network scanning tool may also be flagged by some antivirus software; check the hash against the release's `SHA256SUMS` file. Code signing (SignPath Foundation) is planned.
+> **Windows SmartScreen / antivirus**: the executable is not signed yet. Windows may show "Windows protected your PC": click "More info" then "Run anyway". A network scanning tool may also be flagged by some antivirus software; check the hash against the release's `SHA256SUMS` file. Code signing through SignPath Foundation is being prepared: see [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
 
 ## Command line
 
