@@ -121,3 +121,26 @@ func TestSiteLifecycle(t *testing.T) {
 		t.Error("site inexistant ouvert")
 	}
 }
+
+func TestRecommendations(t *testing.T) {
+	s, err := CreateSite(t.TempDir(), "R")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	id, _ := s.BeginAudit(AuditMeta{Profile: "quick"})
+	if err := s.SetComment(id, "  Réseau globalement sain.  "); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := s.Comment(id); c != "Réseau globalement sain." {
+		t.Errorf("commentaire %q", c)
+	}
+	s.SetRecommendation(id, "telnet", "Remplacer le vieux switch.")
+	s.SetRecommendation(id, "telnet", "Remplacer le switch du local technique.")
+	s.SetRecommendation(id, "rdp_open", "x")
+	s.SetRecommendation(id, "rdp_open", "")
+	r, _ := s.Recommendations(id)
+	if len(r) != 1 || r["telnet"] != "Remplacer le switch du local technique." {
+		t.Errorf("%v", r)
+	}
+}

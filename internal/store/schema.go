@@ -102,4 +102,12 @@ CREATE INDEX change_audit ON change(audit_id);
 `,
 	// 2 — informations des protocoles de découverte (NetBIOS, mDNS, SSDP…).
 	`ALTER TABLE observation ADD COLUMN extra TEXT NOT NULL DEFAULT '{}';`,
+	// 3 — rapport : commentaire du technicien et recommandations personnalisées.
+	`ALTER TABLE audit ADD COLUMN comment TEXT NOT NULL DEFAULT '';
+CREATE TABLE recommendation (
+	audit_id INTEGER NOT NULL REFERENCES audit(id) ON DELETE CASCADE,
+	rule     TEXT NOT NULL,
+	text     TEXT NOT NULL,
+	PRIMARY KEY (audit_id, rule)
+);`,
 }

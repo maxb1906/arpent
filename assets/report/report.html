@@ -13,7 +13,7 @@
 
 <section class="cover page">
   {{if .Issuer.LogoDataURI}}<img class="logo" src="{{.Issuer.LogoDataURI}}" alt="">{{end}}
-  <p class="kicker">{{t "report.title"}}</p>
+  <p class="kicker">{{t "report.title"}}{{if ne .Kind "full"}} — {{t (print "report.kind." .Kind)}}{{end}}</p>
   <h1>{{.Site.Name}}</h1>
   {{if .Site.Address}}<p class="address">{{.Site.Address}}</p>{{end}}
   <dl class="cover-facts">
@@ -27,12 +27,15 @@
   <p class="confidential">{{t "report.confidential"}}</p>
 </section>
 
+{{$groups := .Groups}}
+{{if .Has "summary"}}
 <section class="page">
-  <h2>1. {{t "report.summary"}}</h2>
+  <h2>{{t "report.summary"}}</h2>
   <div class="risk {{.Risk}}"><span>{{t "report.risk_label"}}</span> <b>{{t (print "report.risk." .Risk)}}</b></div>
   <p>{{t "report.summary_intro" "date" (date .Audit.Started) "site" .Site.Name "devices" (len .Observations) "ports" .OpenPorts "ranges" .Audit.Ranges}}</p>
   <p>{{t "report.summary_findings" "critical" (index .Counts "critical") "warning" (index .Counts "warning") "info" (index .Counts "info")}}</p>
   <p>{{t (print "report.risk_text." .Risk)}}</p>
+  {{if .Comment}}<div class="comment"><h3>{{t "report.comment"}}</h3><p>{{.Comment}}</p></div>{{end}}
   {{if .Previous}}<p>{{t "report.summary_changes" "date" (date .Previous.Started) "new" (index .ChangeCounts "new_device") "unknown" .Unknown "gone" (index .ChangeCounts "gone_device") "opened" (index .ChangeCounts "port_opened")}}</p>{{end}}
   <div class="kpis">
     <div><b>{{len .Observations}}</b>{{t "col.devices"}}</div>
@@ -41,33 +44,35 @@
     <div class="warning"><b>{{index .Counts "warning"}}</b>{{t "level.warning"}}</div>
     <div class="info"><b>{{index .Counts "info"}}</b>{{t "level.info"}}</div>
   </div>
-  {{$groups := .Groups}}
   {{if $groups}}
   <h3>{{t "report.priorities"}}</h3>
   <ol class="priorities">
-    {{range $groups}}{{if ne .Level "info"}}<li><span class="level {{.Level}}">{{t (print "level." .Level)}}</span> {{ft .Rule "fix" .First.Params}} <span class="muted">({{t "report.devices_count" "count" .Device}})</span></li>{{end}}{{end}}
+    {{range $groups}}{{if ne .Level "info"}}<li><span class="level {{.Level}}">{{t (print "level." .Level)}}</span> <b>{{ft .Rule "title" .First.Params}}</b> — {{with $.D.Fix .Rule}}{{.}}{{else}}{{ft .Rule "fix" .First.Params}}{{end}} <span class="muted">({{t "report.devices_count" "count" .Device}})</span></li>{{end}}{{end}}
   </ol>
   {{end}}
 </section>
+{{end}}
 
+{{if .Has "findings"}}
 <section class="page">
-  <h2>2. {{t "web.findings"}}</h2>
+  <h2>{{t "web.findings"}}</h2>
   {{if not $groups}}<p>{{t "web.no_finding"}}</p>{{end}}
   {{range $groups}}
   <article class="group {{.Level}}">
     <h3><span class="level {{.Level}}">{{t (print "level." .Level)}}</span> {{ft .Rule "title" .First.Params}}</h3>
     <p>{{ft .Rule "explain" .First.Params}}</p>
-    <p class="fix"><b>{{t "web.fix"}} :</b> {{ft .Rule "fix" .First.Params}}</p>
+    <p class="fix"><b>{{t "web.fix"}} :</b> {{with $.D.Fix .Rule}}{{.}}{{else}}{{ft .Rule "fix" .First.Params}}{{end}}</p>
     <table><thead><tr><th>{{t "report.device"}}</th><th>{{t "report.port"}}</th><th>{{t "report.detail"}}</th></tr></thead><tbody>
     {{range .Items}}<tr><td>{{if .Label}}{{.Label}} — {{end}}<span class="mono">{{.IP}}</span></td><td class="mono">{{if .Port}}{{.Port}}/{{.Proto}}{{end}}</td><td>{{ft .Rule "title" .Params}}</td></tr>{{end}}
     </tbody></table>
   </article>
   {{end}}
 </section>
+{{end}}
 
-{{if .Previous}}
+{{if .Has "changes"}}
 <section class="page">
-  <h2>3. {{t "report.evolution" "date" (date .Previous.Started)}}</h2>
+  <h2>{{t "report.evolution" "date" (date .Previous.Started)}}</h2>
   {{if not .Changes}}<p>{{t "web.no_change"}}</p>{{else}}
   <table><thead><tr><th></th><th>{{t "report.change"}}</th><th>{{t "report.device"}}</th><th>{{t "report.detail"}}</th></tr></thead><tbody>
   {{range .Changes}}<tr class="ch {{.Kind}}"><td>{{t (print "change.icon." .Kind)}}</td><td>{{t (print "change." .Kind)}}{{if .Field}} ({{t (print "change.field." .Field)}}){{end}}{{if and (eq .Kind "new_device") (not .Known)}} <span class="level warning">{{t "report.unidentified"}}</span>{{end}}</td>
@@ -77,8 +82,9 @@
 </section>
 {{end}}
 
+{{if .Has "inventory"}}
 <section class="page">
-  <h2>{{if .Previous}}4{{else}}3{{end}}. {{t "web.inventory"}}</h2>
+  <h2>{{t "web.inventory"}}</h2>
   <table class="inventory"><thead><tr><th>{{t "col.ip"}}</th><th>{{t "col.name"}}</th><th>{{t "col.mac"}}</th><th>{{t "col.vendor"}}</th><th>{{t "web.type"}}</th><th>{{t "col.open_ports"}}</th></tr></thead><tbody>
   {{range .Observations}}<tr>
     <td class="mono">{{.IP}}</td>
@@ -90,9 +96,11 @@
   </tr>{{end}}
   </tbody></table>
 </section>
+{{end}}
 
 <section class="annex">
-  <h2>{{if .Previous}}5{{else}}4{{end}}. {{t "report.annex"}}</h2>
+  {{if .Has "annex"}}
+  <h2>{{t "report.annex"}}</h2>
   {{range .Observations}}{{if .Services}}
   <article class="device">
     <h3><span class="mono">{{.IP}}</span> {{.DisplayName}}{{if .Vendor}} <span class="muted small">· {{.Vendor}}</span>{{end}}</h3>
@@ -107,6 +115,7 @@
     </tbody></table>
   </article>
   {{end}}{{end}}
+  {{end}}
 
   <h2>{{t "report.method"}}</h2>
   <dl class="facts">

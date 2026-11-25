@@ -13,11 +13,13 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/maxb1906/arpent/internal/i18n"
+	"github.com/maxb1906/arpent/internal/report"
 )
 
 const (
@@ -64,6 +66,7 @@ func New(opt Options) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{opt: opt, token: hex.EncodeToString(b), addr: ln.Addr().String(), jobs: newJobs(), pages: p, ln: ln}
+	report.TemplatesDir = filepath.Join(opt.DataDir, "templates")
 	s.routes()
 	s.server = &http.Server{Handler: s.guard(s.mux), ReadHeaderTimeout: 10 * time.Second}
 	return s, nil

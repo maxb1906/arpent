@@ -31,6 +31,8 @@ dt { color: var(--muted); } dd { margin: 0; }
 .priorities li { margin: .35em 0; }
 .group { border-left: 4px solid var(--line); padding: .1em 0 .1em 1em; margin: 1em 0; break-inside: avoid-page; }
 .group.critical { border-left-color: var(--bad); } .group.warning { border-left-color: var(--warn); } .group.info { border-left-color: var(--info); }
+.comment { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; padding: .3em 1em; margin: 1em 0; white-space: pre-line; }
+.comment h3 { margin: .4em 0 .2em; }
 .fix { background: #f4f7fa; padding: .4em .7em; border-radius: 6px; }
 tr.ch.new_device td, tr.ch.ip_reassigned td { background: #fff7ea; }
 .device { break-inside: avoid-page; }

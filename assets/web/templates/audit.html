@@ -15,6 +15,8 @@
     <b>{{t "web.report"}}</b>
     <label class="inline-label">{{t "web.report_lang"}}
       <select name="lang">{{range .Langs}}<option value="{{.}}"{{if $.Data.ReportLang}}{{if eq . $.Data.ReportLang}} selected{{end}}{{else if eq . $.Lang}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+    <label class="inline-label">{{t "web.report_kind"}}
+      <select name="kind">{{range .Kinds}}<option value="{{.}}">{{t (print "report.kind." .)}}</option>{{end}}</select></label>
     <button name="format" value="html" class="primary">{{t "web.view"}}</button>
     <button name="format" value="pdf" title="{{t "web.pdf_hint"}}">{{t "web.pdf"}}</button>
     <button formmethod="post" formtarget="_self" name="format" value="html">{{t "web.save_report"}}</button>
@@ -47,6 +49,21 @@
     <span class="level warning">{{index .FindingCounts "warning"}}</span>
     <span class="level info">{{index .FindingCounts "info"}}</span></h2>
   {{template "findings" (dict "Findings" .Findings "Slug" .Site.Slug "Link" true)}}
+</section>
+
+<section class="card" id="customize">
+  <details{{if or .Comment .Recos}} open{{end}}>
+  <summary><h2 class="inline">{{t "web.edit_report"}}</h2></summary>
+  <form method="post" action="/sites/{{.Site.Slug}}/audits/{{.Audit.ID}}/customize" class="stack">
+    <label>{{t "report.comment"}}<textarea name="comment" rows="3">{{.Comment}}</textarea><span class="hint">{{t "web.comment_hint"}}</span></label>
+    {{range .Rules}}
+    <label>{{t "web.reco_custom"}} — {{ft . "title" (index $.Data.FirstParams .)}}{{if index $.Data.Recos .}} <span class="tag ok">{{t "web.customized"}}</span>{{end}}
+      <textarea name="reco_{{.}}" rows="2" placeholder="{{ft . "fix" (index $.Data.FirstParams .)}}">{{index $.Data.Recos .}}</textarea>
+      <span class="hint">{{t "web.reco_hint"}}</span></label>
+    {{end}}
+    <div><button class="primary">{{t "web.save"}}</button></div>
+  </form>
+  </details>
 </section>
 
 <section class="card">

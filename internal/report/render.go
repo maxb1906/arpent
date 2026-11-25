@@ -18,13 +18,56 @@ import (
 // Formats d'export disponibles (« pdf » passe par un navigateur, voir PDF).
 var Formats = []string{"html", "pdf", "csv", "json"}
 
+// TemplatesDir, s'il est défini et contient report.html et/ou report.css,
+// remplace les modèles embarqués (arpent-data/templates/) : un technicien
+// adapte le rapport sans recompiler.
+var TemplatesDir string
+
+// templateFile lit un modèle : version personnalisée si elle existe, sinon embarquée.
+func templateFile(name string) ([]byte, error) {
+	if TemplatesDir != "" {
+		if b, err := os.ReadFile(filepath.Join(TemplatesDir, name)); err == nil {
+			return b, nil
+		}
+	}
+	return assets.Report.ReadFile("report/" + name)
+}
+
+// ExportTemplates copie les modèles embarqués dans dir (point de départ
+// d'une personnalisation) sans écraser les fichiers existants.
+func ExportTemplates(dir string) ([]string, error) {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, err
+	}
+	var written []string
+	for _, name := range []string{"report.html", "report.css"} {
+		path := filepath.Join(dir, name)
+		if _, err := os.Stat(path); err == nil {
+			continue
+		}
+		b, err := assets.Report.ReadFile("report/" + name)
+		if err != nil {
+			return nil, err
+		}
+		if err := os.WriteFile(path, b, 0o644); err != nil {
+			return nil, err
+		}
+		written = append(written, path)
+	}
+	return written, nil
+}
+
 // HTML écrit le rapport autonome dans la langue de tr.
 func HTML(w io.Writer, d *Data, tr *i18n.Translator) error {
-	css, err := assets.Report.ReadFile("report/report.css")
+	css, err := templateFile("report.css")
 	if err != nil {
 		return err
 	}
-	t, err := template.New("report.html").Funcs(i18n.TemplateFuncs(tr)).ParseFS(assets.Report, "report/report.html")
+	src, err := templateFile("report.html")
+	if err != nil {
+		return err
+	}
+	t, err := template.New("report.html").Funcs(i18n.TemplateFuncs(tr)).Parse(string(src))
 	if err != nil {
 		return err
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"html"
 	"net/url"
 	"os"
@@ -45,7 +46,7 @@ func browserCandidates() []string {
 		}
 	default:
 		var out []string
-		for _, n := range []string{"microsoft-edge", "microsoft-edge-stable", "google-chrome", "google-chrome-stable", "chromium", "chromium-browser"} {
+		for _, n := range []string{"google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge", "microsoft-edge-stable"} {
 			if p, err := exec.LookPath(n); err == nil {
 				out = append(out, p)
 			}
@@ -57,27 +58,56 @@ func browserCandidates() []string {
 // FindBrowser renvoie le chemin d'un navigateur Chromium installé ; la
 // variable ARPENT_BROWSER permet d'en imposer un.
 func FindBrowser() (string, error) {
-	if p := os.Getenv("ARPENT_BROWSER"); p != "" {
-		if _, err := os.Stat(p); err == nil {
-			return p, nil
-		}
-	}
-	for _, p := range browserCandidates() {
-		if st, err := os.Stat(p); err == nil && !st.IsDir() {
-			return p, nil
-		}
+	if all := findBrowsers(); len(all) > 0 {
+		return all[0], nil
 	}
 	return "", ErrNoBrowser
+}
+
+// findBrowsers renvoie tous les navigateurs trouvés, par ordre de préférence.
+func findBrowsers() []string {
+	var out []string
+	seen := map[string]bool{}
+	add := func(p string) {
+		if st, err := os.Stat(p); err == nil && !st.IsDir() && !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	if p := os.Getenv("ARPENT_BROWSER"); p != "" {
+		add(p)
+	}
+	for _, p := range browserCandidates() {
+		add(p)
+	}
+	return out
 }
 
 // PDF produit le rapport en PDF à partir du même modèle HTML, en pilotant
 // le navigateur sans fenêtre (protocole DevTools), avec en-têtes et pieds
 // de page : site, date, numéro de page, mention de confidentialité.
 func PDF(ctx context.Context, d *Data, tr *i18n.Translator) ([]byte, error) {
-	browser, err := FindBrowser()
-	if err != nil {
-		return nil, err
+	browsers := findBrowsers()
+	if len(browsers) == 0 {
+		return nil, ErrNoBrowser
 	}
+	// Un navigateur peut être présent mais inutilisable (installation
+	// incomplète, politique d'entreprise…) : on essaie les suivants.
+	var errs []error
+	for _, b := range browsers {
+		pdf, err := pdfWith(ctx, b, d, tr)
+		if err == nil {
+			return pdf, nil
+		}
+		errs = append(errs, fmt.Errorf("%s : %w", filepath.Base(b), err))
+		if ctx.Err() != nil {
+			break
+		}
+	}
+	return nil, errors.Join(errs...)
+}
+
+func pdfWith(ctx context.Context, browser string, d *Data, tr *i18n.Translator) ([]byte, error) {
 	// Limite globale : au-delà, le navigateur est arrêté.
 	ctx, cancelAll := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancelAll()

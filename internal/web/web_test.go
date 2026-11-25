@@ -200,6 +200,13 @@ func TestAuditFlow(t *testing.T) {
 		t.Error("langue de rapport par défaut (en) ignorée")
 	}
 
+	// Personnalisation du rapport et type « résumé direction ».
+	h.post(auditPath+"/customize", url.Values{"comment": {"Synthèse de test du technicien."}})
+	code, body = h.get(auditPath + "/report?format=html&kind=executive&lang=fr")
+	if code != 200 || !strings.Contains(body, "Synthèse de test du technicien.") || !strings.Contains(body, "résumé direction") || strings.Contains(body, "Annexe technique") {
+		t.Errorf("rapport personnalisé : %d", code)
+	}
+
 	// Rapport : affichage en anglais, export CSV, enregistrement dans le site.
 	code, body = h.get(auditPath + "/report?lang=en&format=html")
 	if code != 200 || !strings.Contains(body, "Network audit report") || !strings.Contains(body, "<style>") {

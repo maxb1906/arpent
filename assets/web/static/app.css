@@ -100,3 +100,4 @@ button.small { padding: .15rem .55rem; font-size: .82rem; }
 .logo-preview { max-width: 220px; max-height: 90px; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; padding: .4rem; background: #fff; }
 input[type=color] { padding: 0; height: 2.2rem; width: 4rem; }
 p.legal { margin: 0 0 1.2rem; }
+h2.inline { display: inline; } details > summary h2 { cursor: pointer; }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 
 	"github.com/maxb1906/arpent/internal/report"
@@ -14,8 +15,12 @@ func cmdReport(e *env, args []string) int {
 	format := fs.String("format", "html", "")
 	lang := fs.String("report-lang", "", "")
 	out := fs.String("out", "", "")
+	kind := fs.String("kind", report.KindFull, "")
 	if code, ok := e.parse(fs, args); !ok {
 		return code
+	}
+	if !slices.Contains(report.Kinds, *kind) {
+		return e.fail(fmt.Errorf("type : %s", *kind))
 	}
 	if !slices.Contains(report.Formats, *format) {
 		return e.fail(fmt.Errorf("format : %s", *format))
@@ -49,11 +54,12 @@ func cmdReport(e *env, args []string) int {
 		return e.fail(err)
 	}
 	applyIssuer(e, d)
+	d.Kind = *kind
 	tr := e.bundle.Translator(rl)
 	if *format == "pdf" {
 		path := *out
 		if path == "" || path == "-" {
-			path = report.Path(s, d.Audit, "pdf")
+			path = report.KindPath(s, d.Audit, d.Kind, "pdf")
 		}
 		if err := report.PDFFile(e.ctx, path, d, tr); err != nil {
 			return e.fail(err)
@@ -69,7 +75,7 @@ func cmdReport(e *env, args []string) int {
 	}
 	path := *out
 	if path == "" {
-		path = report.Path(s, d.Audit, *format)
+		path = report.KindPath(s, d.Audit, d.Kind, *format)
 	}
 	if err := report.WriteFile(path, *format, d, tr); err != nil {
 		return e.fail(err)
@@ -82,5 +88,29 @@ func cmdReport(e *env, args []string) int {
 func applyIssuer(e *env, d *report.Data) {
 	if dir, err := e.dataDir(); err == nil {
 		d.Issuer = report.IssuerFromConfig(dir, e.config().Issuer)
+		report.TemplatesDir = filepath.Join(dir, "templates")
 	}
+}
+
+func cmdTemplates(e *env, args []string) int {
+	fs := e.newFlags("templates")
+	if code, ok := e.parse(fs, args); !ok {
+		return code
+	}
+	dir, err := e.dataDir()
+	if err != nil {
+		return e.fail(err)
+	}
+	tdir := filepath.Join(dir, "templates")
+	written, err := report.ExportTemplates(tdir)
+	if err != nil {
+		return e.fail(err)
+	}
+	if len(written) == 0 {
+		fmt.Fprintln(e.stdout, e.T("templates.exists", "dir", tdir))
+	}
+	for _, p := range written {
+		fmt.Fprintln(e.stdout, e.T("templates.written", "path", p))
+	}
+	return 0
 }

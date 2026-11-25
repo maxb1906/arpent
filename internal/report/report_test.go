@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"net"
 	"net/netip"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -144,5 +146,57 @@ func TestBuildRunning(t *testing.T) {
 	id, _ := s.BeginAudit(store.AuditMeta{Profile: "quick"})
 	if _, err := Build(s, id, ""); err == nil {
 		t.Error("rapport d'un audit en cours accepté")
+	}
+}
+
+func TestKindsAndCustomisation(t *testing.T) {
+	s, id := site(t)
+	s.SetComment(id, "Synthèse : réseau à assainir.")
+	s.SetRecommendation(id, "telnet", "Remplacer l'équipement du local technique.")
+	b, _ := i18n.Default()
+	render := func(kind string) string {
+		d, err := Build(s, id, "Arpent test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		d.Kind = kind
+		var buf bytes.Buffer
+		if err := HTML(&buf, d, b.Translator("fr")); err != nil {
+			t.Fatal(err)
+		}
+		return buf.String()
+	}
+	full := render(KindFull)
+	for _, want := range []string{"Synthèse du technicien", "réseau à assainir", "Remplacer l&#39;équipement du local technique", "Annexe technique", "Inventaire"} {
+		if !strings.Contains(full, want) {
+			t.Errorf("complet : %q absent", want)
+		}
+	}
+	exec := render(KindExecutive)
+	if strings.Contains(exec, "Annexe technique") || strings.Contains(exec, "<h2>Inventaire") || !strings.Contains(exec, "résumé direction") {
+		t.Error("résumé direction : contenu technique présent")
+	}
+	tech := render(KindTechnical)
+	if strings.Contains(tech, "Niveau de risque") || !strings.Contains(tech, "Annexe technique") {
+		t.Error("technique : sections inattendues")
+	}
+	ch := render(KindChanges)
+	if !strings.Contains(ch, "Évolution depuis") || strings.Contains(ch, "Annexe technique") {
+		t.Error("évolution : sections inattendues")
+	}
+
+	// Modèle personnalisé.
+	dir := t.TempDir()
+	if _, err := ExportTemplates(dir); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(dir, "report.css"), []byte("body{color:#123456}"), 0o644)
+	TemplatesDir = dir
+	defer func() { TemplatesDir = "" }()
+	if !strings.Contains(render(KindFull), "body{color:#123456}") {
+		t.Error("CSS personnalisée ignorée")
+	}
+	if names, _ := ExportTemplates(dir); len(names) != 0 {
+		t.Error("modèles existants écrasés")
 	}
 }

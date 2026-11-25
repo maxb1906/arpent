@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{block "title" .}}Arpent{{end}} — Arpent</title>
 <link rel="stylesheet" href="/static/app.css">
+{{if .Accent}}<style>:root { --accent: {{.Accent}}; }</style>{{end}}
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <script src="/static/app.js" defer></script>
 </head>

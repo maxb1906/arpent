@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/maxb1906/arpent/assets"
+	"github.com/maxb1906/arpent/internal/config"
 	"github.com/maxb1906/arpent/internal/i18n"
 )
 
@@ -61,6 +62,7 @@ type pageData struct {
 	Version string
 	Running *jobSnapshot
 	Title   string
+	Accent  template.CSS // couleur principale (réglages) ou vide
 	Data    any
 }
 
@@ -79,6 +81,9 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, dat
 	}
 	t.Funcs(baseFuncs(tr))
 	pd := pageData{Lang: lang, Langs: s.opt.Bundle.Languages(), Path: r.URL.RequestURI(), Version: s.opt.Version, Data: data}
+	if c, err := config.Load(s.opt.DataDir); err == nil && c.Issuer.Color != "" {
+		pd.Accent = template.CSS(c.Issuer.Color) // validée par config (#rrggbb)
+	}
 	if j := s.jobs.running(); j != nil {
 		snap := j.snapshot()
 		pd.Running = &snap

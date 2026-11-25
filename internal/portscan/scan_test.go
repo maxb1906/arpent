@@ -3,6 +3,7 @@ package portscan
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net"
 	"net/netip"
 	"testing"
@@ -51,8 +52,11 @@ func TestScanTCPAndUDP(t *testing.T) {
 		buf := make([]byte, 512)
 		for {
 			n, from, err := uc.ReadFrom(buf)
-			if err != nil {
+			if errors.Is(err, net.ErrClosed) {
 				return
+			}
+			if err != nil {
+				continue // Windows : WSAECONNRESET transitoire sur les sockets UDP
 			}
 			if bytes.Equal(buf[:n], []byte("ping")) {
 				uc.WriteTo([]byte("pong"), from)
@@ -66,7 +70,7 @@ func TestScanTCPAndUDP(t *testing.T) {
 		Ports:      []int{open1, closed, open2},
 		UDP:        []UDPProbe{{Port: udpPort, Service: "test", Payload: []byte("ping")}, {Port: closedUDP, Payload: []byte("x")}},
 		Timeout:    time.Second,
-		UDPTimeout: 500 * time.Millisecond,
+		UDPTimeout: 2 * time.Second, // Windows sous -race peut être lent
 	})
 	if err != nil {
 		t.Fatal(err)

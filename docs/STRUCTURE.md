@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étapes 0 à 10 et 12 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`).
+> Statut : **étapes 0 à 10, 12 et 13 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -229,7 +229,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 **Version complète (après la v1.0)** — détail au § 11 :
 
 - [x] **Étape 12 — PDF en un clic** : détection d'Edge/Chrome, génération via `chromedp`, en-têtes/pieds de page, repli impression.
-- [ ] **Étape 13 — Rapports à la marque** : profil émetteur, logo/couleurs, modèles surchargeables, types de rapport, recommandations éditables.
+- [x] **Étape 13 — Rapports à la marque** : profil émetteur, logo/couleurs, modèles surchargeables, types de rapport, recommandations éditables.
 - [ ] **Étape 14 — Comparaison libre et historique** : diff entre deux audits au choix, frise par appareil, graphique d'évolution.
 - [ ] **Étape 15 — Multi-sites** : portefeuille, rappels d'audit, export/import `.arpent`, recherche transverse.
 - [ ] **Étape 16 — Mode avancé Npcap** : détection Npcap + admin, ARP brut, scan SYN, écoute passive.
@@ -347,3 +347,7 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Étape 12 terminée. `report.PDF` : le même modèle HTML que le rapport est écrit dans un dossier temporaire puis imprimé par Edge/Chrome/Chromium/Brave sans fenêtre via `chromedp` v0.22.1 (nouvelle API générique `Run`/`Do`/`PrintToPDF`), A4, fonds imprimés, en-tête (site, titre, date) et pied de page (mention de confidentialité, « Page n / total ») traduits. Profil de navigateur jetable (`UserDataDir` temporaire, supprimé ensuite) : rien n'est laissé sur le PC du client. Détection : chemins Windows (`Program Files`, `Program Files (x86)`, `LocalAppData`), macOS, `PATH` Linux ; `ARPENT_BROWSER` pour en imposer un. Délai global de 2 min.
 - **2026-11-25** — Repli : si aucun navigateur n'est trouvé ou si l'impression échoue, l'interface affiche un message qui renvoie vers le rapport HTML et « Imprimer / PDF » du navigateur. Boutons « PDF » (affichage) et « Enregistrer (PDF) » sur la page d'audit ; `arpent report --format pdf`. Pas de navigateur sur la devbox (installation refusée) : le test PDF y est ignoré mais il est **exigé** en CI (`ARPENT_REQUIRE_BROWSER=1`) sur Ubuntu et Windows, où Chrome et Edge sont présents.
 - **2026-11-25** — CI : deux appels de l'exe sans commande (`--lang fr`/`--lang en`) restaient dans le test Windows et lançaient l'interface ; corrigés (`hello`). Leçon : toute nouvelle commande par défaut doit être répercutée dans les scripts du CI.
+- **2026-11-25** — Étape 13 terminée. Profil émetteur (déjà dans `config.yaml` à l'étape 11) appliqué à la page de garde, au pied du rapport, à la couleur du rapport **et de l'interface**. Types de rapport : complet, résumé direction (garde + résumé + actions prioritaires + évolution, sans détail technique), technique (points, inventaire, annexe, sans résumé), évolution (changements) — `?kind=` dans l'UI, `--kind` en CLI, suffixe dans le nom de fichier (`…_audit-3_executive.pdf`). Numéros de section retirés (ils dépendent du type).
+- **2026-11-25** — Personnalisation avant export (migration 3) : synthèse libre du technicien par audit (`audit.comment`) et recommandation personnalisée **par règle** et par audit (table `recommendation`, un champ par type de point d'attention plutôt que par occurrence : c'est ainsi que le rapport les regroupe). Formulaire « Personnaliser le rapport » sur la page d'audit ; texte vide = texte par défaut.
+- **2026-11-25** — Modèles surchargeables : si `arpent-data/templates/report.html` et/ou `report.css` existent, ils remplacent les modèles embarqués ; `arpent templates` les y copie comme point de départ (sans écraser). Testé (CSS personnalisée prise en compte).
+- **2026-11-25** — PDF : sur le runner Ubuntu, Edge était trouvé en premier mais plantait (sandbox SUID mal installée) ; désormais tous les navigateurs trouvés sont essayés dans l'ordre (Chrome d'abord sous Linux), erreurs cumulées.

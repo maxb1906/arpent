@@ -43,6 +43,7 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /api/sites/{slug}/audits/{id}/progress", s.progress)
 	m.HandleFunc("GET /sites/{slug}/audits/{id}/report", s.reportView)
 	m.HandleFunc("POST /sites/{slug}/audits/{id}/report", s.reportSave)
+	m.HandleFunc("POST /sites/{slug}/audits/{id}/customize", s.customize)
 	m.HandleFunc("GET /sites/{slug}/devices/{id}", s.devicePage)
 	m.HandleFunc("POST /sites/{slug}/devices/{id}", s.annotate)
 	m.HandleFunc("POST /sites/{slug}/devices/{id}/known", s.setKnown)
@@ -346,6 +347,19 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 	data["Langs"] = s.opt.Bundle.Languages()
 	cfg, _ := config.Load(s.opt.DataDir)
 	data["ReportLang"] = cfg.ReportLang
+	data["Kinds"] = report.Kinds
+	data["Comment"], _ = site.Comment(id)
+	data["Recos"], _ = site.Recommendations(id)
+	var rulesSeen []string
+	seen := map[string]bool{}
+	for _, f := range findings {
+		if !seen[f.Rule] {
+			seen[f.Rule] = true
+			rulesSeen = append(rulesSeen, f.Rule)
+		}
+	}
+	data["Rules"] = rulesSeen
+	data["FirstParams"] = firstParams(findings)
 	data["Types"] = sortedCounts(types)
 	if prev, _ := site.PreviousAudit(id); prev != 0 {
 		if pa, err := site.GetAudit(prev); err == nil {
@@ -513,6 +527,9 @@ func (s *Server) reportData(r *http.Request) (*store.Site, *report.Data, *i18n.T
 	if !slices.Contains(report.Formats, format) {
 		format = "html"
 	}
+	if k := r.FormValue("kind"); slices.Contains(report.Kinds, k) {
+		d.Kind = k
+	}
 	return site, d, s.opt.Bundle.Translator(lang), format, nil
 }
 
@@ -530,13 +547,13 @@ func (s *Server) reportView(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/pdf")
-		w.Header().Set("Content-Disposition", `inline; filename="`+report.FileName(d.Audit, "pdf")+`"`)
+		w.Header().Set("Content-Disposition", `inline; filename="`+report.KindFileName(d.Audit, d.Kind, "pdf")+`"`)
 		w.Write(b)
 		return
 	}
 	w.Header().Set("Content-Type", report.ContentType(format))
 	if format != "html" || r.FormValue("download") == "1" {
-		w.Header().Set("Content-Disposition", `attachment; filename="`+report.FileName(d.Audit, format)+`"`)
+		w.Header().Set("Content-Disposition", `attachment; filename="`+report.KindFileName(d.Audit, d.Kind, format)+`"`)
 	}
 	// Le rapport contient un petit script (bouton Imprimer) : CSP propre.
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'")
@@ -552,7 +569,7 @@ func (s *Server) reportSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer site.Close()
-	path := report.Path(site, d.Audit, format)
+	path := report.KindPath(site, d.Audit, d.Kind, format)
 	if format == "pdf" {
 		err = report.PDFFile(r.Context(), path, d, tr)
 		if err != nil {
@@ -600,4 +617,43 @@ func (s *Server) saveSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/settings?saved=1", http.StatusSeeOther)
+}
+
+// firstParams : paramètres du premier point de chaque règle (pour les titres).
+func firstParams(fs []store.Finding) map[string]map[string]string {
+	m := map[string]map[string]string{}
+	for _, f := range fs {
+		if _, ok := m[f.Rule]; !ok {
+			m[f.Rule] = f.Params
+		}
+	}
+	return m
+}
+
+func (s *Server) customize(w http.ResponseWriter, r *http.Request) {
+	site, err := s.openSite(r)
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	defer site.Close()
+	id, err := pathID(r, "id")
+	if err != nil {
+		s.fail(w, r, 404, err)
+		return
+	}
+	if err := site.SetComment(id, r.FormValue("comment")); err != nil {
+		s.fail(w, r, 500, err)
+		return
+	}
+	r.ParseForm()
+	for k, v := range r.PostForm {
+		if rule, ok := strings.CutPrefix(k, "reco_"); ok && len(v) > 0 {
+			if err := site.SetRecommendation(id, rule, v[0]); err != nil {
+				s.fail(w, r, 500, err)
+				return
+			}
+		}
+	}
+	http.Redirect(w, r, "/sites/"+site.Slug+"/audits/"+itoa64(id)+"#customize", http.StatusSeeOther)
 }
