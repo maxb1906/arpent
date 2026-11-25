@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étape 0 (socle) terminée** — prochaine étape : 1 (réseau local).
+> Statut : **étape 1 (réseau local) terminée** — prochaine étape : 2 (découverte).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -208,7 +208,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 ## 10. Étapes d'implémentation (suivi pour Claude Code)
 
 - [x] **Étape 0 — Socle** : installer Go sur la devbox, initialiser le dépôt GitHub public et le module, fichier `LICENSE`, README FR/EN, structure de dossiers, mécanisme de traduction (fr/en), `Makefile` de cross-compilation, GitHub Actions (tests + build), binaire « hello » qui tourne sur Windows.
-- [ ] **Étape 1 — Réseau local** : détection des interfaces et sous-réseaux, lecture de la table ARP (Windows + Linux), requête ARP active via `SendARP` sous Windows.
+- [x] **Étape 1 — Réseau local** : détection des interfaces et sous-réseaux, lecture de la table ARP (Windows + Linux), requête ARP active via `SendARP` sous Windows.
 - [ ] **Étape 2 — Découverte** : réveil des hôtes, DNS inverse, base OUI embarquée → liste d'appareils en CLI.
 - [ ] **Étape 3 — Scan de ports** : TCP connect concurrent, profils, limitation de débit.
 - [ ] **Étape 4 — Sondes** : bannières génériques, HTTP, TLS, SSH.
@@ -304,3 +304,6 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Traduction : package `internal/i18n` maison, sans dépendance, catalogues JSON plats `assets/i18n/{fr,en}.json` embarqués via le package `assets` ; variables `{nom}` ; repli sur `fr` puis sur la clé ; un `Bundle` donne plusieurs `Translator` (langue de l'UI ≠ langue du rapport). Détection : `--lang`, puis `ARPENT_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANG`, puis `GetUserDefaultLocaleName` sous Windows. Un test impose que toutes les langues aient les mêmes clés.
 - **2026-11-25** — Build : `Makefile` (pas encore GoReleaser, prévu pour les releases à l'étape 11), `CGO_ENABLED=0`, `-trimpath -s -w`, version injectée par `-X main.version` depuis `git describe`. Binaires `dist/arpent-<os>-<arch>[.exe]`. CI GitHub Actions : tests sur Ubuntu + Windows (`-race`), cross-compilation des 4 cibles avec SHA256SUMS en artefact, et lancement réel de l'exe sur un runner Windows.
 - **2026-11-25** — Les paquets de § 7 existent déjà sous forme de `doc.go` vides, à remplir étape par étape.
+- **2026-11-25** — Étape 1 terminée. `internal/netinfo` : interfaces + IPv4 (`net.Interfaces`), sous-réseaux proposés (interfaces actives hors boucle locale, lien-local et interfaces virtuelles Docker/veth/VM ; un réseau plus grand qu'un /22 est réduit au /24 de la machine), plages saisies (CIDR jusqu'au /16, adresse, intervalle `a.b.c.10-50`). Table ARP : `/proc/net/arp` (Linux), `GetIpNetTable2` via `iphlpapi.dll` avec décodage manuel de `MIB_IPNET_ROW2` (88 octets, testé sur Linux avec des lignes forgées), `arp -an` (macOS). ARP actif : `SendARP` sous Windows uniquement. Aucune dépendance externe (pas de `golang.org/x/sys`, `syscall` suffit).
+- **2026-11-25** — CLI réorganisée en sous-commandes (`interfaces`, `arp [--active] [--range]`), aides et options traduites (un test vérifie qu'aucune clé n'apparaît brute). Le CI lance `interfaces` et `arp` sur le runner Windows (lecture seule, aucun paquet envoyé sur le réseau d'Azure).
+- **2026-11-25** — Choix de rythme : les étapes s'enchaînent sans pause à la demande de l'utilisateur, chacune poussée avec le CI vert avant la suivante.

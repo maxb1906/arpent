@@ -64,3 +64,7 @@ jobs:
           ./dist/arpent-windows-amd64.exe --lang en
           ./dist/arpent-windows-amd64.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./dist/arpent-windows-amd64.exe interfaces
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./dist/arpent-windows-amd64.exe arp
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
