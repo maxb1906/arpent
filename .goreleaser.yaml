@@ -39,5 +39,5 @@ release:
   name_template: "Arpent {{ .Version }}"
   footer: |
     **Windows** : téléchargez `arpent_{{ .Version }}_windows_amd64.zip`, décompressez-le sur une clé USB et double-cliquez sur `arpent.exe`.
-    L'exécutable n'est pas encore signé : Windows SmartScreen peut afficher un avertissement (« Informations complémentaires » → « Exécuter quand même »).
+    L'exécutable n'est pas encore signé : SmartScreen peut afficher un avertissement (« Informations complémentaires » → « Exécuter quand même ») et le Contrôle intelligent des applications de Windows 11 le bloque sans possibilité de passer outre (voir le README).
     Vérifiez l'intégrité avec `SHA256SUMS`.
