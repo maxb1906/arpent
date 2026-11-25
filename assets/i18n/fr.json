@@ -1,0 +1,9 @@
+{
+  "app.tagline": "Audit et documentation réseau, portable et sans installation.",
+  "hello.greeting": "Bonjour depuis Arpent {version} ({os}/{arch}).",
+  "hello.legal": "Rappel : n'auditez qu'un réseau pour lequel vous disposez d'une autorisation.",
+  "cli.usage": "Utilisation : arpent [--lang fr|en] [commande]",
+  "cli.commands": "Commandes :\n  hello     affiche un message de bienvenue (par défaut)\n  version   affiche la version",
+  "cli.unknown_command": "Commande inconnue : {command}",
+  "cli.unknown_lang": "Langue non prise en charge : {lang} (langues disponibles : {available})"
+}

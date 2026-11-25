@@ -1,0 +1,9 @@
+{
+  "app.tagline": "Portable, install-free network audit and documentation.",
+  "hello.greeting": "Hello from Arpent {version} ({os}/{arch}).",
+  "hello.legal": "Reminder: only audit a network you are authorised to audit.",
+  "cli.usage": "Usage: arpent [--lang fr|en] [command]",
+  "cli.commands": "Commands:\n  hello     print a welcome message (default)\n  version   print the version",
+  "cli.unknown_command": "Unknown command: {command}",
+  "cli.unknown_lang": "Unsupported language: {lang} (available languages: {available})"
+}
