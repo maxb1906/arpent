@@ -8,3 +8,9 @@ import "embed"
 //
 //go:embed i18n/*.json
 var I18n embed.FS
+
+// OUI est le registre IEEE MA-L compressé (« PREFIXE\tFabricant » par ligne),
+// généré par tools/ouigen.
+//
+//go:embed oui.tsv.gz
+var OUI []byte

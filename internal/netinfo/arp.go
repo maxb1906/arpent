@@ -20,7 +20,17 @@ type Neighbor struct {
 
 // ARPTable lit la table ARP (voisins IPv4) de l'OS. Les entrées incomplètes
 // ou sans MAC sont ignorées.
-func ARPTable() ([]Neighbor, error) { return arpTable() }
+func ARPTable() ([]Neighbor, error) {
+	all, err := arpTable()
+	out := all[:0]
+	for _, n := range all {
+		if n.IP.IsUnspecified() || n.IP.IsMulticast() || n.IP == netip.AddrFrom4([4]byte{255, 255, 255, 255}) {
+			continue
+		}
+		out = append(out, n)
+	}
+	return out, err
+}
 
 // ActiveARP envoie une requête ARP à ip et renvoie sa MAC, sans droits
 // administrateur. Disponible uniquement sous Windows (API SendARP) ;
@@ -32,8 +42,10 @@ func ActiveARP(ctx context.Context, ip netip.Addr) (net.HardwareAddr, error) {
 // ActiveARPSupported indique si ActiveARP est disponible sur cet OS.
 func ActiveARPSupported() bool { return activeARPSupported }
 
+// validMAC écarte les MAC nulles, de diffusion et multicast (bit 0 du
+// premier octet), qui ne désignent pas un appareil.
 func validMAC(m net.HardwareAddr) bool {
-	if len(m) != 6 {
+	if len(m) != 6 || m[0]&0x01 != 0 {
 		return false
 	}
 	zero, bcast := true, true

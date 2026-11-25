@@ -68,3 +68,5 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./dist/arpent-windows-amd64.exe arp
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./dist/arpent-windows-amd64.exe discover --range 127.0.0.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

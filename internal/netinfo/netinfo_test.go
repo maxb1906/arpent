@@ -40,7 +40,8 @@ func TestParseArpAn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 2 {
+	// Incomplète, diffusion et multicast écartées.
+	if len(got) != 1 {
 		t.Fatalf("%d entrées : %v", len(got), got)
 	}
 	if got[0].MAC.String() != "00:11:22:03:44:55" || got[0].Interface != "en0" {
@@ -122,7 +123,7 @@ func TestHostsAndRanges(t *testing.T) {
 }
 
 func TestValidMAC(t *testing.T) {
-	if validMAC(net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}) || validMAC(net.HardwareAddr{1, 2, 3}) {
+	if validMAC(net.HardwareAddr{0x01, 0x00, 0x5e, 0, 0, 0x16}) || validMAC(net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}) || validMAC(net.HardwareAddr{1, 2, 3}) {
 		t.Error("MAC invalide acceptée")
 	}
 }

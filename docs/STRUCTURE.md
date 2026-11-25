@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étape 1 (réseau local) terminée** — prochaine étape : 2 (découverte).
+> Statut : **étape 2 (découverte) terminée** — prochaine étape : 3 (scan de ports).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -169,6 +169,8 @@ cmd/arpent/           # point d'entrée (CLI + lancement UI)
 internal/netinfo/     # interfaces, sous-réseaux, table ARP par OS
 internal/discovery/   # réveil des hôtes, NetBIOS, mDNS, SSDP, DNS inverse
 internal/portscan/    # scan TCP/UDP concurrent avec limitation de débit
+internal/pace/        # limiteur de débit commun (sondes par seconde)
+internal/i18n/        # traductions fr/en (catalogues assets/i18n)
 internal/probe/       # bannières : http, tls, ssh, smb, snmp, générique
 internal/fingerprint/ # signatures, devinette du type d'appareil, base OUI
 internal/rules/       # moteur de points d'attention
@@ -176,7 +178,8 @@ internal/diff/        # comparaison entre deux audits
 internal/store/       # SQLite (schéma, migrations, requêtes)
 internal/report/      # rendu HTML autonome, CSV, JSON
 internal/web/         # serveur local + API + assets embarqués
-assets/               # oui.txt, signatures.yaml, rules.yaml, templates, CSS/JS
+assets/               # oui.tsv.gz, signatures.yaml, rules.yaml, templates, CSS/JS
+tools/ouigen/         # génère assets/oui.tsv.gz depuis le registre IEEE
 ```
 
 Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_darwin.go`.
@@ -209,7 +212,7 @@ Code spécifique à l'OS isolé par fichiers `_windows.go` / `_linux.go` / `_dar
 
 - [x] **Étape 0 — Socle** : installer Go sur la devbox, initialiser le dépôt GitHub public et le module, fichier `LICENSE`, README FR/EN, structure de dossiers, mécanisme de traduction (fr/en), `Makefile` de cross-compilation, GitHub Actions (tests + build), binaire « hello » qui tourne sur Windows.
 - [x] **Étape 1 — Réseau local** : détection des interfaces et sous-réseaux, lecture de la table ARP (Windows + Linux), requête ARP active via `SendARP` sous Windows.
-- [ ] **Étape 2 — Découverte** : réveil des hôtes, DNS inverse, base OUI embarquée → liste d'appareils en CLI.
+- [x] **Étape 2 — Découverte** : réveil des hôtes, DNS inverse, base OUI embarquée → liste d'appareils en CLI.
 - [ ] **Étape 3 — Scan de ports** : TCP connect concurrent, profils, limitation de débit.
 - [ ] **Étape 4 — Sondes** : bannières génériques, HTTP, TLS, SSH.
 - [ ] **Étape 5 — Stockage** : schéma SQLite, sites, audits, sauvegarde des résultats.
@@ -307,3 +310,7 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Étape 1 terminée. `internal/netinfo` : interfaces + IPv4 (`net.Interfaces`), sous-réseaux proposés (interfaces actives hors boucle locale, lien-local et interfaces virtuelles Docker/veth/VM ; un réseau plus grand qu'un /22 est réduit au /24 de la machine), plages saisies (CIDR jusqu'au /16, adresse, intervalle `a.b.c.10-50`). Table ARP : `/proc/net/arp` (Linux), `GetIpNetTable2` via `iphlpapi.dll` avec décodage manuel de `MIB_IPNET_ROW2` (88 octets, testé sur Linux avec des lignes forgées), `arp -an` (macOS). ARP actif : `SendARP` sous Windows uniquement. Aucune dépendance externe (pas de `golang.org/x/sys`, `syscall` suffit).
 - **2026-11-25** — CLI réorganisée en sous-commandes (`interfaces`, `arp [--active] [--range]`), aides et options traduites (un test vérifie qu'aucune clé n'apparaît brute). Le CI lance `interfaces` et `arp` sur le runner Windows (lecture seule, aucun paquet envoyé sur le réseau d'Azure).
 - **2026-11-25** — Choix de rythme : les étapes s'enchaînent sans pause à la demande de l'utilisateur, chacune poussée avec le CI vert avant la suivante.
+- **2026-11-25** — Étape 2 terminée. Base OUI : registre IEEE MA-L (≈ 40 500 préfixes) converti par `tools/ouigen` en `assets/oui.tsv.gz` (≈ 390 Ko embarqués, chargés à la première utilisation). Les MAC administrées localement (aléatoires) sont signalées « MAC aléatoire » plutôt que d'afficher un faux fabricant ; les MAC multicast/diffusion et adresses 224.0.0.0/4 sont écartées de la table ARP.
+- **2026-11-25** — Découverte (`internal/discovery`, commande `arpent discover`) : par hôte, `SendARP` (Windows, sous-réseaux locaux uniquement), ping ICMP non privilégié (`IcmpSendEcho` sous Windows ; socket `udp4` de `golang.org/x/net/icmp` sous Linux/macOS, ignoré si `ping_group_range` l'interdit — c'est le cas sur la devbox), puis connexions TCP sur 12 ports courants (un refus de connexion prouve aussi que l'hôte existe), puis relecture de la table ARP et DNS inverse. Débit plafonné (300 sondes/s par défaut) par un petit paquet `internal/pace` (ajouté au § 7, utilisé aussi par le scan de ports).
+- **2026-11-25** — Dépendance ajoutée : `golang.org/x/net` v0.62.0 (pure Go, BSD) pour ICMP, et plus tard le parsing HTML. Règle suivie : ne prendre que des versions publiées depuis au moins deux semaines.
+- **2026-11-25** — Limite connue : sous Windows, une connexion TCP refusée met ≈ 1 s à être signalée (Windows réessaie le SYN) ; la découverte locale s'appuie donc surtout sur `SendARP`.
