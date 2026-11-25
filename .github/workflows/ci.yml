@@ -70,8 +70,8 @@ jobs:
       - name: Run arpent.exe
         shell: pwsh
         run: |
-          ./dist/arpent-windows-amd64.exe --lang fr
-          ./dist/arpent-windows-amd64.exe --lang en
+          ./dist/arpent-windows-amd64.exe --lang fr hello
+          ./dist/arpent-windows-amd64.exe --lang en hello
           ./dist/arpent-windows-amd64.exe hello
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./dist/arpent-windows-amd64.exe interfaces
