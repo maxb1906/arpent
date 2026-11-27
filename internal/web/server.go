@@ -11,6 +11,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
+	"io"
 	"net"
 	"net/http"
 	"path/filepath"
@@ -136,7 +137,13 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: s.token, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	// Pas de redirection HTTP : dans la fenêtre Arpent, /login est atteint
+	// depuis la page interne de Wails (autre site) et le navigateur
+	// n'enverrait pas un cookie SameSite=Strict au bout de cette chaîne.
+	// Ce meta refresh part de notre propre page : navigation même origine.
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	io.WriteString(w, `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/"><title>Arpent</title></head><body></body></html>`)
 }
 
 // lang renvoie la langue de l'interface pour cette requête.

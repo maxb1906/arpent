@@ -123,6 +123,7 @@ func main() {
 				code = 3
 			}
 			if code != 0 && launchedAlone() {
+				showConsole(true) // masquée pendant la fenêtre Arpent
 				pause(os.Args[1:])
 			}
 		}()
@@ -190,7 +191,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	// Sans commande (double-clic sur l'exe) : interface web.
+	// Sans commande (double-clic sur l'exe) : interface (fenêtre ou navigateur).
 	name, rest := "ui", []string(nil)
 	if fs.NArg() > 0 {
 		name, rest = fs.Arg(0), fs.Args()[1:]

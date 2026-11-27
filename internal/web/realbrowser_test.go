@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,13 +12,22 @@ import (
 
 	"github.com/chromedp/chromedp"
 
+	"github.com/maxb1906/arpent/internal/desktop"
 	"github.com/maxb1906/arpent/internal/report"
 )
 
 // TestRealBrowserForm soumet un formulaire depuis un vrai navigateur (Edge,
 // Chrome) : les en-têtes Origin / Sec-Fetch-Site / Referrer-Policy réels ne
 // sont pas reproduits par le client HTTP de Go.
-func TestRealBrowserForm(t *testing.T) {
+func TestRealBrowserForm(t *testing.T) { realBrowserForm(t, false) }
+
+// TestRealBrowserDesktopLogin reproduit le démarrage de la fenêtre Arpent :
+// la connexion part d'une page d'un autre site (http://wails.localhost sous
+// Windows, ici un serveur sur « localhost », autre site que 127.0.0.1) ; le
+// cookie SameSite=Strict doit malgré tout être envoyé ensuite.
+func TestRealBrowserDesktopLogin(t *testing.T) { realBrowserForm(t, true) }
+
+func realBrowserForm(t *testing.T, viaDesktop bool) {
 	path, err := report.FindBrowser()
 	if errors.Is(err, report.ErrNoBrowser) {
 		if os.Getenv("ARPENT_REQUIRE_BROWSER") != "" {
@@ -38,7 +48,13 @@ func TestRealBrowserForm(t *testing.T) {
 	ctx, cancel3 := context.WithTimeout(bctx, 90*time.Second)
 	defer cancel3()
 
-	if err := chromedp.Do(bctx, chromedp.Navigate(h.srv.URL())); err != nil {
+	first := h.srv.URL()
+	if viaDesktop {
+		wails := httptest.NewServer(desktop.Redirect(first))
+		defer wails.Close()
+		first = strings.Replace(wails.URL, "127.0.0.1", "localhost", 1) + "/"
+	}
+	if err := chromedp.Do(bctx, chromedp.Navigate(first)); err != nil {
 		t.Fatal(err)
 	}
 	if err := chromedp.Do(ctx,

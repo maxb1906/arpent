@@ -27,11 +27,11 @@ Scanning a network without permission is **illegal**, in Belgium and elsewhere. 
 ## Getting started
 
 1. Download `arpent_<version>_windows_amd64.zip` from the [Releases](https://github.com/maxb1906/arpent/releases) and unzip it onto a USB stick.
-2. **Double-click `arpent.exe`**: a console window opens and your browser shows the interface.
+2. **Double-click `arpent.exe`**: the interface opens in an Arpent window (Microsoft Edge WebView2 engine, present on up-to-date Windows 10/11). Without WebView2, Arpent opens the interface in your browser, with a console window to keep open; `arpent.exe ui --browser` forces this mode.
 3. Create a site (the client), run an audit, browse the inventory, then generate the report.
-4. Close the console window (or click "Quit" in the interface) to stop.
+4. Close the Arpent window (or the console in browser mode, or click "Quit" in the interface) to stop.
 
-All data lives in the `arpent-data/` folder **next to the executable**: preferences (`config.yaml`) and one folder per site (`sites/<site>/site.db` and `rapports/`). Nothing is written to the registry or `%APPDATA%`.
+All data lives in the `arpent-data/` folder **next to the executable**: preferences (`config.yaml`), one folder per site (`sites/<site>/site.db` and `rapports/`) and the window profile (`webview2/`). Nothing is written to the registry or `%APPDATA%`.
 
 > **Windows SmartScreen / antivirus**: the executable is not signed yet. Windows may show "Windows protected your PC": click "More info" then "Run anyway". A network scanning tool may also be flagged by some antivirus software; check the hash against the release's `SHA256SUMS` file. Code signing through SignPath Foundation is being prepared: see [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
 

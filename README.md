@@ -27,11 +27,11 @@ Scanner un réseau sans autorisation est **illégal**, en Belgique comme ailleur
 ## Démarrage
 
 1. Téléchargez `arpent_<version>_windows_amd64.zip` depuis les [Releases](https://github.com/maxb1906/arpent/releases) et décompressez-le sur une clé USB.
-2. **Double-cliquez sur `arpent.exe`** : une fenêtre console s'ouvre et votre navigateur affiche l'interface.
+2. **Double-cliquez sur `arpent.exe`** : l'interface s'ouvre dans une fenêtre Arpent (moteur Microsoft Edge WebView2, présent sur Windows 10/11 à jour). Sans WebView2, Arpent ouvre l'interface dans votre navigateur, avec une fenêtre console à garder ouverte ; `arpent.exe ui --browser` force ce mode.
 3. Créez un site (le client), lancez un audit, consultez l'inventaire, puis générez le rapport.
-4. Fermez la fenêtre console (ou « Quitter » dans l'interface) pour arrêter.
+4. Fermez la fenêtre Arpent (ou la console en mode navigateur, ou « Quitter » dans l'interface) pour arrêter.
 
-Toutes les données sont dans le dossier `arpent-data/`, **à côté de l'exécutable** : préférences (`config.yaml`) et un dossier par site (`sites/<site>/site.db` et `rapports/`). Rien n'est écrit dans le registre ni dans `%APPDATA%`.
+Toutes les données sont dans le dossier `arpent-data/`, **à côté de l'exécutable** : préférences (`config.yaml`), un dossier par site (`sites/<site>/site.db` et `rapports/`) et le profil de la fenêtre (`webview2/`). Rien n'est écrit dans le registre ni dans `%APPDATA%`.
 
 > **Windows SmartScreen / antivirus** : l'exécutable n'est pas encore signé. Windows peut afficher « Windows a protégé votre ordinateur » : cliquez sur « Informations complémentaires » puis « Exécuter quand même ». Un outil qui scanne le réseau peut aussi être signalé par certains antivirus ; vérifiez l'empreinte avec le fichier `SHA256SUMS` de la release. La signature de code via SignPath Foundation est en préparation : voir [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
 

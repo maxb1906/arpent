@@ -1,7 +1,7 @@
 # Arpent — Outil d'audit et de documentation réseau automatisé — Structure projet
 
 > Fichier de cadrage et de suivi d'implémentation. Il consigne tous les choix du projet et sert de référence à Claude Code pendant le développement sur la devbox Oracle.
-> Statut : **étapes 0 à 10 et 12 à 16 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`) ; étape 17 préparée (candidature SignPath à déposer, voir `docs/SIGNPATH.md`).
+> Statut : **étapes 0 à 10 et 12 à 16 terminées ; étape 11 prête** sauf le test sur le LAN du homelab et la publication de la v1.0 (voir `docs/TEST-HOMELAB.md`) ; étape 17 préparée (candidature SignPath à déposer, voir `docs/SIGNPATH.md`). Interface Windows passée en fenêtre native Wails (branche `wails`, à valider sur le PC Windows).
 > Nom : **Arpent** — licence **GPL-3.0** — dépôt GitHub public.
 
 ---
@@ -46,8 +46,8 @@ Cas d'usage visé : un technicien, un indépendant ou un MSP arrive chez une PME
 - Driver `modernc.org/sqlite` (sans CGO → la cross-compilation reste triviale).
 - Un fichier `.db` par **site audité**.
 
-### Interface : serveur web local embarqué
-- Au lancement, l'exe démarre un serveur HTTP sur `127.0.0.1` (port libre aléatoire) et **ouvre le navigateur par défaut**.
+### Interface : serveur web local embarqué, affiché dans une fenêtre native
+- Au lancement, l'exe démarre un serveur HTTP sur `127.0.0.1` (port libre aléatoire) et l'affiche dans une **fenêtre Arpent (Wails v2 + WebView2)** sous Windows ; à défaut (WebView2 absent, Linux, macOS, `ui --browser`), il **ouvre le navigateur par défaut**.
 - Front léger : HTML + CSS + un peu de JS (htmx ou vanilla), tout embarqué. Pas de framework lourd, pas de build Node.
 - Écoute **uniquement en local** (jamais `0.0.0.0`) : l'outil ne s'expose pas sur le réseau audité.
 
@@ -182,6 +182,7 @@ internal/store/       # SQLite (schéma, migrations, requêtes)
 internal/config/      # dossier de données portable, config.yaml
 internal/report/      # rendu HTML autonome, CSV, JSON
 internal/web/         # serveur local + API + assets embarqués
+internal/desktop/     # fenêtre native Wails/WebView2 (Windows) qui affiche internal/web
 assets/               # oui.tsv.gz, signatures.yaml, rules.yaml, templates, CSS/JS
 tools/ouigen/         # génère assets/oui.tsv.gz depuis le registre IEEE
 ```
@@ -363,3 +364,6 @@ Ces fonctionnalités viennent après le socle (étapes 0 à 11) et font d'Arpent
 - **2026-11-25** — Étape 17 préparée (non cochée) : `CODE_SIGNING_POLICY.md` (mention SignPath obligatoire, rôles, ce qui est signé, politique de confidentialité — Arpent n'émet rien hors des plages auditées, interface sur 127.0.0.1, aucune télémétrie), lien dans les README, workflow `sign.yml` (action `signpath/github-action-submit-signing-request@v2`, déclenché à la publication d'une release ou à la main) qui récupère l'exe de la release, le soumet à SignPath avec approbation manuelle et remplace l'archive Windows et `SHA256SUMS`. Inactif tant que la variable `SIGNPATH_ORGANIZATION_ID` n'existe pas, pour ne pas casser les releases. Restent les démarches personnelles (MFA, v1.0.0 publiée, candidature, configuration du projet SignPath, secrets) : `docs/SIGNPATH.md`.
 - **2026-11-25** — Lancement par double-clic fiabilisé (retour : « il ne se passe rien ») : en cas d'erreur ou de plantage, la console reste ouverte (« Appuyez sur Entrée », détection via `GetConsoleProcessList`) ; navigateur ouvert par `ShellExecuteW` (repli rundll32) ; sortie de l'interface copiée dans `arpent-data/arpent.log`.
 - **2026-11-25** — Bug « forbidden origin » sur tous les formulaires (retour du test Windows) : avec `Referrer-Policy: no-referrer`, Edge/Chrome envoient `Origin: null` sur un POST de formulaire. Politique passée à `same-origin` ; contrôle d'origine fondé d'abord sur `Sec-Fetch-Site` (same-origin/none admis, cross-site/same-site refusés), puis sur `Origin`. Nouveau test `TestRealBrowserForm` (formulaire soumis dans un vrai Edge/Chrome, exigé en CI).
+- **2026-11-27** — Nouvelle version de l'interface en **fenêtre native Wails** (demande de l'utilisateur ; écart au § 3, qui prévoyait le seul navigateur). Wails **v2.17.1** (la v3 n'existe qu'en nightly) + `go-webview2` v1.0.22 ; Windows uniquement, car Wails y est pur Go (`CGO_ENABLED=0` conservé et cross-compilation depuis la devbox ARM64 intacte), alors que Linux (WebKitGTK) et macOS exigent CGO : ces cibles gardent le navigateur. Exe Windows : +2,5 Mo.
+- **2026-11-27** — Rien n'est réécrit : la fenêtre (`internal/desktop`) affiche le serveur local existant (127.0.0.1 + jeton) ; la page interne de Wails (`http://wails.localhost/`) ne fait qu'un meta refresh vers `/login?k=…`. Formulaires, téléchargements, import, rapports et PDF sont donc identiques dans les deux modes, et la sécurité du serveur (Host, jeton, cookie, origine) n'est pas relâchée. `/login` répond désormais par une page à meta refresh au lieu d'un 303 : arrivé depuis un autre site (wails.localhost), le navigateur n'enverrait pas le cookie `SameSite=Strict` au bout d'une chaîne de redirection ; nouveau test en vrai navigateur `TestRealBrowserDesktopLogin` (départ depuis « localhost », autre site que 127.0.0.1).
+- **2026-11-27** — Code Wails compilé seulement avec les tags `desktop,production` (exigés par Wails : sans eux il affiche une erreur et plante) : `make windows`/`build-all`, `make vet` (vérification Windows supplémentaire) et GoReleaser les ajoutent pour windows/amd64 ; un `go build` sans tags donne le mode navigateur. Le runtime WebView2 est vérifié avant l'ouverture (`webviewloader`) ; **Arpent ne l'installe jamais** (PC du client) et retombe sur le navigateur s'il manque ou si la fenêtre échoue. Profil WebView2 dans `arpent-data/webview2/` (rien dans `%APPDATA%`, conforme au § 4). Console : masquée pendant que la fenêtre est ouverte si l'exe a été lancé par double-clic, réaffichée en cas d'erreur (« Appuyez sur Entrée ») ; exe toujours en sous-système console pour la CLI (pas de `-H windowsgui`). `ui --browser` force le navigateur, `ui --no-browser` = serveur seul (CI inchangé). Fenêtre non testable sur la devbox : à valider sur le PC Windows (`docs/TEST-HOMELAB.md`).

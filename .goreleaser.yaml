@@ -12,6 +12,11 @@ builds:
     ldflags: ["-s -w -X main.version={{ .Version }}"]
     targets: [windows_amd64, linux_amd64, linux_arm64, darwin_arm64]
     mod_timestamp: "{{ .CommitTimestamp }}"
+    overrides:
+      # Fenêtre native Wails (WebView2), voir internal/desktop.
+      - goos: windows
+        goarch: amd64
+        tags: [desktop, production]
 
 archives:
   - id: arpent

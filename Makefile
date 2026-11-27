@@ -7,6 +7,9 @@ VERSION  ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev
 LDFLAGS  := -s -w -X main.version=$(VERSION)
 GOFLAGS  := -trimpath
 PLATFORMS := windows/amd64 linux/amd64 linux/arm64 darwin/arm64
+# Fenêtre native Wails (WebView2) : Windows uniquement, sans CGO ; Wails exige
+# ces tags, sans eux l'exe retombe sur le navigateur (internal/desktop).
+WINTAGS  := desktop,production
 
 export CGO_ENABLED := 0
 
@@ -23,6 +26,7 @@ test:
 
 vet:
 	go vet ./...
+	GOOS=windows GOARCH=amd64 go vet -tags $(WINTAGS) ./...
 
 fmt:
 	gofmt -w .
@@ -38,7 +42,7 @@ build-all: $(PLATFORMS)
 $(PLATFORMS):
 	$(eval OS := $(word 1,$(subst /, ,$@)))
 	$(eval ARCH := $(word 2,$(subst /, ,$@)))
-	GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS) -ldflags "$(LDFLAGS)" \
+	GOOS=$(OS) GOARCH=$(ARCH) go build $(GOFLAGS) $(if $(filter windows,$(OS)),-tags $(WINTAGS),) -ldflags "$(LDFLAGS)" \
 		-o $(DIST)/$(BINARY)-$(OS)-$(ARCH)$(if $(filter windows,$(OS)),.exe,) $(PKG)
 
 clean:

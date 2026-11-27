@@ -7,7 +7,10 @@
 - [ ] Noter l'avertissement SmartScreen / Defender éventuel (texte exact, capture) pour le README.
 
 ## Lancement
-- [ ] Double-clic : la console s'ouvre, le navigateur affiche l'interface, `arpent-data/` est créé à côté de l'exe.
+- [ ] Double-clic : la fenêtre Arpent s'ouvre (pas de console visible, pas de navigateur), `arpent-data/` (avec `webview2/`) est créé à côté de l'exe, rien dans `%APPDATA%\arpent.exe`.
+- [ ] Dans la fenêtre : créer un site, lancer un audit (progression), changer de langue, téléchargements (rapport HTML, CSV, PDF « Enregistrer »), affichage du PDF, « Imprimer / PDF », import d'un `.arpent`, lien npcap.com.
+- [ ] « Quitter » ferme la fenêtre et arrête le processus ; fermer la fenêtre par la croix aussi (Gestionnaire des tâches : plus d'`arpent.exe`).
+- [ ] `arpent.exe ui --browser` : console + navigateur comme avant ; `arpent.exe scan …` depuis un terminal : sortie normale dans le terminal.
 - [ ] Pare-feu Windows : une demande d'autorisation apparaît-elle ? (attendu : non, écoute sur 127.0.0.1 seulement).
 - [ ] Réglages : technicien, société, logo (`arpent-data/logo.png`), langue des rapports.
 
